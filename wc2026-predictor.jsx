@@ -282,11 +282,11 @@ export default function ProgressivePredictor(){
   const [{teamA:initA,teamB:initB,cfg:initCfg}]=useState(parseUrlParams);
   const [teamA,setTeamA]=useState(initA);
   const [teamB,setTeamB]=useState(initB);
-  useEffect(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(matchLog)); }catch{} },[matchLog]);
-  useEffect(()=>{ try{ localStorage.setItem(KO_KEY, JSON.stringify(koMatches)); }catch{} },[koMatches]);
   const [cfg,setCfg]=useState(initCfg);
   const [copied,setCopied]=useState(false);
   const [koMatches,setKoMatches]=useState(loadKoMatches);
+  useEffect(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(matchLog)); }catch{} },[matchLog]);
+  useEffect(()=>{ try{ localStorage.setItem(KO_KEY, JSON.stringify(koMatches)); }catch{} },[koMatches]);
 
   useEffect(()=>{
     const p=new URLSearchParams();
