@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: #faf7f5; }
+
+/* Mobile responsiveness pass */
+@media (max-width: 600px) {
+  .wc-predict-teams { grid-template-columns: 1fr !important; }
+  .wc-score-panel   { flex-direction: column !important; gap: 14px !important; }
+  .wc-idx-row-label { width: 90px !important; }
+  .wc-body          { padding: 16px !important; }
+  .wc-schedule-grid { grid-template-columns: 1fr !important; }
+  /* Stack header: logo top, title below, button inline with title */
+  .wc-header        { padding: 12px 14px 0 !important; }
+  .wc-header > div:first-child {
+    grid-template-columns: auto 1fr !important;
+    grid-template-rows: auto auto !important;
+  }
+}
