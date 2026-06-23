@@ -285,6 +285,7 @@ export default function ProgressivePredictor(){
   const [cfg,setCfg]=useState(initCfg);
   const [copied,setCopied]=useState(false);
   const [koMatches,setKoMatches]=useState(loadKoMatches);
+  const [openGroup,setOpenGroup]=useState(null);
   useEffect(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(matchLog)); }catch{} },[matchLog]);
   useEffect(()=>{ try{ localStorage.setItem(KO_KEY, JSON.stringify(koMatches)); }catch{} },[koMatches]);
 
@@ -518,8 +519,9 @@ export default function ProgressivePredictor(){
                   const res=(matchLog[m.a]||[]).find(r=>r.opp===m.b)||null;
                   return (
                     <div key={m.a+m.b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.line}`}}>
-                      <span style={{fontSize:"12px",fontWeight:600}}>{FLAGS[m.a]} {NAMES[m.a]}</span>
-                      <div style={{textAlign:"center"}}>
+                      <span style={{fontSize:"12px",fontWeight:600,flex:1,textAlign:"right"}}>{FLAGS[m.a]} {NAMES[m.a]}</span>
+                      <div style={{textAlign:"center",minWidth:"110px"}}>
+                        <div style={{fontSize:"9px",fontWeight:700,color:C.blue,letterSpacing:"0.5px",marginBottom:"2px"}}>GROUP {m.g}</div>
                         {res?(
                           <span style={{fontSize:"13px",fontWeight:800,color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
                         ):(
@@ -529,12 +531,48 @@ export default function ProgressivePredictor(){
                           </div>
                         )}
                       </div>
-                      <span style={{fontSize:"12px",fontWeight:600}}>{NAMES[m.b]} {FLAGS[m.b]}</span>
+                      <span style={{fontSize:"12px",fontWeight:600,flex:1}}>{NAMES[m.b]} {FLAGS[m.b]}</span>
                     </div>
                   );
                 })}
               </div>
             )}
+            {openGroup&&(()=>{
+              const ts=GROUPS[openGroup];
+              const rows=[];
+              for(let i=0;i<ts.length;i++)for(let j=i+1;j<ts.length;j++){
+                const [a,b]=[ts[i],ts[j]];
+                const info=getSchedInfo(a,b);
+                const res=(matchLog[a]||[]).find(m=>m.opp===b)||null;
+                rows.push({a,b,info,res});
+              }
+              rows.sort((x,y)=>(x.info?.date||"").localeCompare(y.info?.date||""));
+              return (
+                <div style={{background:C.panelAlt,borderRadius:"10px",padding:"12px",marginBottom:"14px",border:`1px solid ${C.lineStrong}`}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                    <span style={{fontSize:"11px",fontWeight:800,color:C.green,letterSpacing:"1px"}}>GROUP {openGroup} — FIXTURES</span>
+                    <button onClick={()=>setOpenGroup(null)} style={{background:"transparent",border:"none",color:C.dim,fontSize:"18px",lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
+                  </div>
+                  {rows.map(({a,b,info,res})=>(
+                    <div key={a+b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.line}`}}>
+                      <span style={{fontSize:"12px",fontWeight:600,flex:1,textAlign:"right"}}>{FLAGS[a]} {NAMES[a]}</span>
+                      <div style={{textAlign:"center",minWidth:"110px"}}>
+                        <div style={{fontSize:"9px",fontWeight:700,color:C.blue,letterSpacing:"0.5px",marginBottom:"2px"}}>{info?fmtDate(info.date):"matchday 1"}</div>
+                        {res?(
+                          <span style={{fontSize:"13px",fontWeight:800,color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
+                        ):(
+                          <div>
+                            {info&&<div style={{fontSize:"9px",color:C.dim,marginBottom:"2px"}}>{info.venue.split(",")[0]}</div>}
+                            <button onClick={()=>{setTab("inject");setInjTeam(a);setInjOpp(b);setInjRound("group");}} style={{background:C.coral,color:"#fff",border:"none",borderRadius:"5px",padding:"2px 8px",fontSize:"10px",fontWeight:700,cursor:"pointer"}}>+ add result</button>
+                          </div>
+                        )}
+                      </div>
+                      <span style={{fontSize:"12px",fontWeight:600,flex:1}}>{NAMES[b]} {FLAGS[b]}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
             <div className="wc-schedule-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
               {Object.keys(GROUPS).map(g=>{
                 const ts=GROUPS[g];
@@ -545,8 +583,9 @@ export default function ProgressivePredictor(){
                   pairs.push({a,b,res});
                 }
                 const playedCount=pairs.filter(p=>p.res).length;
+                const isOpen=openGroup===g;
                 return (
-                  <div key={g} style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`}}>
+                  <div key={g} onClick={()=>setOpenGroup(isOpen?null:g)} style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${isOpen?C.lineStrong:C.line}`,cursor:"pointer",boxShadow:isOpen?`0 0 0 1px ${C.lineStrong}`:"none"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
                       <span style={{fontSize:"12px",fontWeight:800,color:C.blue,letterSpacing:"1px"}}>GROUP {g}</span>
                       <span style={{fontSize:"10px",color:C.dim}}>{playedCount}/6</span>
@@ -562,7 +601,7 @@ export default function ProgressivePredictor(){
                           ):(
                             <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:"52px",gap:"2px"}}>
                               {info&&<span style={{fontSize:"9px",color:C.dim,whiteSpace:"nowrap"}}>{fmtDate(info.date)}</span>}
-                              <button onClick={()=>{setTab("inject");setInjTeam(a);setInjOpp(b);setInjRound("group");}} style={{background:"transparent",color:C.coral,border:`1px solid ${C.coral}`,borderRadius:"4px",padding:"1px 5px",fontSize:"9px",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>+add</button>
+                              <button onClick={(e)=>{e.stopPropagation();setTab("inject");setInjTeam(a);setInjOpp(b);setInjRound("group");}} style={{background:"transparent",color:C.coral,border:`1px solid ${C.coral}`,borderRadius:"4px",padding:"1px 5px",fontSize:"9px",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>+add</button>
                             </div>
                           )}
                           <span style={{fontSize:"11px",flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{b} {FLAGS[b]}</span>
