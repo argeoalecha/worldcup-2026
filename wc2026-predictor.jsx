@@ -89,15 +89,30 @@ const BASE_MATCH_LOG = {
   PAN:[{opp:"GHA",gf:0,ga:1}],
 };
 
-const STORAGE_KEY = "wc2026:matchLog:v1";
+// Persist only user-injected deltas, never the merged log — so every deploy's
+// updated BASE_MATCH_LOG always reaches returning visitors. The match log is
+// rebuilt from the current baseline + replayed injects on each render.
+const STORAGE_KEY = "wc2026:injects:v1";
 const cloneBase = () => JSON.parse(JSON.stringify(BASE_MATCH_LOG));
-function loadMatchLog() {
+function loadInjects() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : cloneBase();
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
   } catch {
-    return cloneBase();
+    return [];
   }
+}
+function buildMatchLog(injects) {
+  const log = cloneBase();
+  for (const d of injects) {
+    if (!d || !d.team || !d.opp) continue;
+    if (!log[d.team]) log[d.team] = [];
+    if (!log[d.opp]) log[d.opp] = [];
+    log[d.team].push({ opp: d.opp, gf: Number(d.gf), ga: Number(d.ga) });
+    log[d.opp].push({ opp: d.team, gf: Number(d.ga), ga: Number(d.gf) });
+  }
+  return log;
 }
 
 const CFG_DEFAULTS = {knockout:true,shrink:1.5,halflife:1.5,wForm:1.0,wMom:1.0,wDSI:1.0,wConv:1.0,wSOS:1.0,wExp:1.0};
@@ -150,9 +165,6 @@ const GROUPS={
 };
 const TEAM_GROUP={};
 Object.entries(GROUPS).forEach(([g,ts])=>ts.forEach(t=>{TEAM_GROUP[t]=g;}));
-
-const KO_KEY="wc2026:ko:v1";
-function loadKoMatches(){try{const r=localStorage.getItem(KO_KEY);return r?JSON.parse(r):[]}catch{return [];}}
 
 // ─── OFFICIAL MATCH SCHEDULE (ESPN, 22–27 Jun 2026) ────────────────────────
 const MATCH_SCHEDULE=[
@@ -276,7 +288,9 @@ function predict(aAbbr,bAbbr,cfg,matchLog){
 }
 
 export default function ProgressivePredictor(){
-  const [matchLog,setMatchLog]=useState(loadMatchLog);
+  const [injects,setInjects]=useState(loadInjects);
+  const matchLog=useMemo(()=>buildMatchLog(injects),[injects]);
+  const koMatches=useMemo(()=>injects.filter(d=>d.round&&d.round!=="group"),[injects]);
   const allAbbrs=Object.keys(NAMES).filter(a=>matchLog[a]);
   const [tab,setTab]=useState("predict");
   const [{teamA:initA,teamB:initB,cfg:initCfg}]=useState(parseUrlParams);
@@ -284,10 +298,8 @@ export default function ProgressivePredictor(){
   const [teamB,setTeamB]=useState(initB);
   const [cfg,setCfg]=useState(initCfg);
   const [copied,setCopied]=useState(false);
-  const [koMatches,setKoMatches]=useState(loadKoMatches);
   const [openGroup,setOpenGroup]=useState(null);
-  useEffect(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(matchLog)); }catch{} },[matchLog]);
-  useEffect(()=>{ try{ localStorage.setItem(KO_KEY, JSON.stringify(koMatches)); }catch{} },[koMatches]);
+  useEffect(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(injects)); }catch{} },[injects]);
 
   useEffect(()=>{
     const p=new URLSearchParams();
@@ -316,23 +328,12 @@ export default function ProgressivePredictor(){
 
   const injectResult=useCallback(()=>{
     if(injTeam===injOpp)return;
-    setMatchLog(prev=>{
-      const next=JSON.parse(JSON.stringify(prev));
-      if(!next[injTeam])next[injTeam]=[];
-      if(!next[injOpp])next[injOpp]=[];
-      next[injTeam].push({opp:injOpp,gf:Number(injGF),ga:Number(injGA)});
-      next[injOpp].push({opp:injTeam,gf:Number(injGA),ga:Number(injGF)});
-      return next;
-    });
-    if(injRound!=="group"){
-      setKoMatches(prev=>[...prev,{round:injRound,a:injTeam,b:injOpp,gf:Number(injGF),ga:Number(injGA)}]);
-    }
+    setInjects(prev=>[...prev,{round:injRound,team:injTeam,opp:injOpp,a:injTeam,b:injOpp,gf:Number(injGF),ga:Number(injGA)}]);
   },[injTeam,injOpp,injGF,injGA,injRound]);
 
   const resetMatchLog=useCallback(()=>{
-    try{ localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(KO_KEY); }catch{}
-    setMatchLog(cloneBase());
-    setKoMatches([]);
+    try{ localStorage.removeItem(STORAGE_KEY); }catch{}
+    setInjects([]);
   },[]);
 
   const ranking=useMemo(()=>allAbbrs.map(a=>{
