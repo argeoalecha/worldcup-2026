@@ -1,93 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import HayahaiLogo from "./HayahaiLogo.jsx";
-
-// ─── VALIDATED BASE DATA ────────────────────────────────────────────────────
-// PRE_ELO: EXACT values for 18 teams from eloratings.net (21 Jun 2026).
-// Remaining WC teams ESTIMATED, FIFA-rank-ordered (ESPN Jun 2026), scaled to
-// sit just below Austria (1857). Exact entries flagged in ELO_EXACT below.
-const PRE_ELO = {
-  // ── EXACT (eloratings.net, 21 Jun 2026) ──
-  ESP:2129, ARG:2128, FRA:2084, ENG:2055, COL:1998, BRA:1986,
-  NED:1972, POR:1967, GER:1954, NOR:1929, JPN:1910, MEX:1896,
-  CRO:1881, BEL:1879, URU:1870, MAR:1866, ECU:1864, AUT:1857,
-  // ── ESTIMATED, FIFA-rank-ordered, scaled below Austria ──
-  USA:1845, SEN:1838, SUI:1822, IRN:1808, SWE:1800, KOR:1792,
-  EGY:1784, CIV:1776, AUS:1768, DZA:1760, CAN:1752, PAN:1740,
-  CZE:1730, PAR:1720, SCO:1712, TUN:1700, COD:1688, QAT:1640,
-  IRQ:1632, RSA:1620, KSA:1608, JOR:1596, BIH:1584, CPV:1568,
-  UZB:1552, GHA:1536, TUR:1788, CUW:1492, HTI:1486, NZL:1470,
-};
-
-// Provenance: which ratings are exact (eloratings.net) vs estimated
-const ELO_EXACT = new Set([
-  "ESP","ARG","FRA","ENG","COL","BRA","NED","POR","GER","NOR","JPN","MEX",
-  "CRO","BEL","URU","MAR","ECU","AUT",
-]);
-
-// BASE_MATCH_LOG: every score validated against CBS Sports group tables (21 Jun 2026).
-// {opp, gf, ga} per match, in chronological order (MD1 then MD2).
-const BASE_MATCH_LOG = {
-  // Group A
-  MEX:[{opp:"RSA",gf:2,ga:0},{opp:"KOR",gf:1,ga:0}],
-  KOR:[{opp:"CZE",gf:2,ga:1},{opp:"MEX",gf:0,ga:1}],
-  CZE:[{opp:"KOR",gf:1,ga:2},{opp:"RSA",gf:1,ga:1}],
-  RSA:[{opp:"MEX",gf:0,ga:2},{opp:"CZE",gf:1,ga:1}],
-  // Group B
-  CAN:[{opp:"BIH",gf:1,ga:1},{opp:"QAT",gf:6,ga:0}],
-  SUI:[{opp:"QAT",gf:1,ga:1},{opp:"BIH",gf:4,ga:1}],
-  BIH:[{opp:"CAN",gf:1,ga:1},{opp:"SUI",gf:1,ga:4}],
-  QAT:[{opp:"SUI",gf:1,ga:1},{opp:"CAN",gf:0,ga:6}],
-  // Group C
-  BRA:[{opp:"MAR",gf:1,ga:1},{opp:"HTI",gf:3,ga:0}],
-  MAR:[{opp:"BRA",gf:1,ga:1},{opp:"SCO",gf:1,ga:0}],
-  SCO:[{opp:"HTI",gf:1,ga:0},{opp:"MAR",gf:0,ga:1}],
-  HTI:[{opp:"SCO",gf:0,ga:1},{opp:"BRA",gf:0,ga:3}],
-  // Group D
-  USA:[{opp:"PAR",gf:4,ga:1},{opp:"AUS",gf:2,ga:0}],
-  AUS:[{opp:"TUR",gf:2,ga:0},{opp:"USA",gf:0,ga:2}],
-  PAR:[{opp:"USA",gf:1,ga:4},{opp:"TUR",gf:1,ga:0}],
-  TUR:[{opp:"AUS",gf:0,ga:2},{opp:"PAR",gf:0,ga:1}],
-  // Group E
-  GER:[{opp:"CUW",gf:7,ga:1},{opp:"CIV",gf:2,ga:1}],
-  CIV:[{opp:"ECU",gf:1,ga:0},{opp:"GER",gf:1,ga:2}],
-  ECU:[{opp:"CIV",gf:0,ga:1},{opp:"CUW",gf:0,ga:0}],
-  CUW:[{opp:"GER",gf:1,ga:7},{opp:"ECU",gf:0,ga:0}],
-  // Group F
-  NED:[{opp:"JPN",gf:2,ga:2},{opp:"SWE",gf:5,ga:1}],
-  JPN:[{opp:"NED",gf:2,ga:2},{opp:"TUN",gf:4,ga:0}],
-  SWE:[{opp:"TUN",gf:5,ga:1},{opp:"NED",gf:1,ga:5}],
-  TUN:[{opp:"SWE",gf:1,ga:5},{opp:"JPN",gf:0,ga:4}],
-  // Group G
-  EGY:[{opp:"BEL",gf:1,ga:1},{opp:"NZL",gf:3,ga:1}],
-  IRN:[{opp:"NZL",gf:2,ga:2},{opp:"BEL",gf:0,ga:0}],
-  BEL:[{opp:"EGY",gf:1,ga:1},{opp:"IRN",gf:0,ga:0}],
-  NZL:[{opp:"IRN",gf:2,ga:2},{opp:"EGY",gf:1,ga:3}],
-  // Group H
-  ESP:[{opp:"CPV",gf:0,ga:0},{opp:"KSA",gf:4,ga:0}],
-  URU:[{opp:"KSA",gf:1,ga:1},{opp:"CPV",gf:2,ga:2}],
-  CPV:[{opp:"ESP",gf:0,ga:0},{opp:"URU",gf:2,ga:2}],
-  KSA:[{opp:"URU",gf:1,ga:1},{opp:"ESP",gf:0,ga:4}],
-  // Group I (MD1 + MD2 played — validated vs ESPN 22 Jun 2026)
-  FRA:[{opp:"SEN",gf:3,ga:1},{opp:"IRQ",gf:3,ga:0}],
-  NOR:[{opp:"IRQ",gf:4,ga:1},{opp:"SEN",gf:3,ga:2}],
-  SEN:[{opp:"FRA",gf:1,ga:3},{opp:"NOR",gf:2,ga:3}],
-  IRQ:[{opp:"NOR",gf:1,ga:4},{opp:"FRA",gf:0,ga:3}],
-  // Group J (MD1 played; MD2: ARG-AUT played 22 Jun; JOR-DZA upcoming)
-  ARG:[{opp:"DZA",gf:3,ga:0},{opp:"AUT",gf:2,ga:0}],
-  AUT:[{opp:"JOR",gf:3,ga:1},{opp:"ARG",gf:0,ga:2}],
-  DZA:[{opp:"ARG",gf:0,ga:3}],
-  JOR:[{opp:"AUT",gf:1,ga:3}],
-  // Group K (1 match each)
-  COL:[{opp:"UZB",gf:3,ga:1}],
-  COD:[{opp:"POR",gf:1,ga:1}],
-  POR:[{opp:"COD",gf:1,ga:1}],
-  UZB:[{opp:"COL",gf:1,ga:3}],
-  // Group L (1 match each)
-  ENG:[{opp:"CRO",gf:4,ga:2}],
-  GHA:[{opp:"PAN",gf:1,ga:0}],
-  CRO:[{opp:"ENG",gf:2,ga:4}],
-  PAN:[{opp:"GHA",gf:0,ga:1}],
-};
+import { PRE_ELO, ELO_EXACT, BASE_MATCH_LOG, GROUP_STANDINGS, NAMES, FLAGS, GROUPS, MATCH_SCHEDULE } from "./src/data/results.js";
 
 // Persist only user-injected deltas, never the merged log — so every deploy's
 // updated BASE_MATCH_LOG always reaches returning visitors. The match log is
@@ -135,81 +48,14 @@ function parseUrlParams() {
   return {teamA, teamB, cfg};
 }
 
-const NAMES = {
-  ARG:"Argentina",FRA:"France",BEL:"Belgium",ENG:"England",BRA:"Brazil",ESP:"Spain",
-  POR:"Portugal",NED:"Netherlands",NOR:"Norway",COL:"Colombia",URU:"Uruguay",USA:"USA",
-  MAR:"Morocco",CRO:"Croatia",MEX:"Mexico",GER:"Germany",JPN:"Japan",SWE:"Sweden",
-  SEN:"Senegal",IRN:"IR Iran",SUI:"Switzerland",AUS:"Australia",KOR:"Korea Rep.",
-  AUT:"Austria",TUN:"Tunisia",QAT:"Qatar",ECU:"Ecuador",SCO:"Scotland",EGY:"Egypt",
-  DZA:"Algeria",CIV:"Ivory Coast",COD:"Congo DR",GHA:"Ghana",KSA:"Saudi Arabia",
-  PAR:"Paraguay",CPV:"Cape Verde",BIH:"Bosnia",UZB:"Uzbekistan",JOR:"Jordan",
-  NZL:"New Zealand",CZE:"Czechia",RSA:"S. Africa",HTI:"Haiti",TUR:"Turkiye",
-  CUW:"Curacao",IRQ:"Iraq",CAN:"Canada",PAN:"Panama",
-};
-
-const FLAGS = {
-  ARG:"🇦🇷",FRA:"🇫🇷",ENG:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",BRA:"🇧🇷",ESP:"🇪🇸",POR:"🇵🇹",NED:"🇳🇱",BEL:"🇧🇪",
-  GER:"🇩🇪",URU:"🇺🇾",COL:"🇨🇴",USA:"🇺🇸",MEX:"🇲🇽",JPN:"🇯🇵",MAR:"🇲🇦",NOR:"🇳🇴",
-  SUI:"🇨🇭",AUS:"🇦🇺",KOR:"🇰🇷",CRO:"🇭🇷",SWE:"🇸🇪",CIV:"🇨🇮",CAN:"🇨🇦",EGY:"🇪🇬",
-  SEN:"🇸🇳",ECU:"🇪🇨",SCO:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",PAR:"🇵🇾",QAT:"🇶🇦",IRN:"🇮🇷",NZL:"🇳🇿",CZE:"🇨🇿",
-  RSA:"🇿🇦",TUN:"🇹🇳",GHA:"🇬🇭",BIH:"🇧🇦",UZB:"🇺🇿",CPV:"🇨🇻",COD:"🇨🇩",JOR:"🇯🇴",
-  DZA:"🇩🇿",KSA:"🇸🇦",HTI:"🇭🇹",TUR:"🇹🇷",CUW:"🇨🇼",IRQ:"🇮🇶",AUT:"🇦🇹",PAN:"🇵🇦",
-};
-
-// ─── GROUP STRUCTURE ────────────────────────────────────────────────────────
-const GROUPS={
-  A:["MEX","KOR","CZE","RSA"],B:["CAN","SUI","BIH","QAT"],C:["BRA","MAR","SCO","HTI"],
-  D:["USA","AUS","PAR","TUR"],E:["GER","CIV","ECU","CUW"],F:["NED","JPN","SWE","TUN"],
-  G:["EGY","IRN","BEL","NZL"],H:["ESP","URU","CPV","KSA"],I:["FRA","NOR","SEN","IRQ"],
-  J:["ARG","AUT","DZA","JOR"],K:["COL","COD","POR","UZB"],L:["ENG","GHA","CRO","PAN"],
-};
 const TEAM_GROUP={};
 Object.entries(GROUPS).forEach(([g,ts])=>ts.forEach(t=>{TEAM_GROUP[t]=g;}));
 
-// ─── OFFICIAL MATCH SCHEDULE (ESPN, 22–27 Jun 2026) ────────────────────────
-const MATCH_SCHEDULE=[
-  // MD2 — Jun 22
-  {date:"2026-06-22",g:"J",a:"ARG",b:"AUT",venue:"AT&T Stadium, Arlington TX"},
-  {date:"2026-06-22",g:"I",a:"FRA",b:"IRQ",venue:"Lincoln Financial Field, Philadelphia PA"},
-  {date:"2026-06-22",g:"I",a:"SEN",b:"NOR",venue:"MetLife Stadium, East Rutherford NJ"},
-  {date:"2026-06-22",g:"J",a:"JOR",b:"DZA",venue:"Levi's Stadium, Santa Clara CA"},
-  // MD2 — Jun 23
-  {date:"2026-06-23",g:"K",a:"POR",b:"UZB",venue:"NRG Stadium, Houston TX"},
-  {date:"2026-06-23",g:"L",a:"ENG",b:"GHA",venue:"Gillette Stadium, Foxborough MA"},
-  {date:"2026-06-23",g:"L",a:"PAN",b:"CRO",venue:"BMO Field, Toronto Canada"},
-  {date:"2026-06-23",g:"K",a:"COL",b:"COD",venue:"Estadio Akron, Guadalajara Mexico"},
-  // MD3 — Jun 24
-  {date:"2026-06-24",g:"B",a:"BIH",b:"QAT",venue:"Lumen Field, Seattle WA"},
-  {date:"2026-06-24",g:"B",a:"SUI",b:"CAN",venue:"BC Place, Vancouver Canada"},
-  {date:"2026-06-24",g:"C",a:"MAR",b:"HTI",venue:"Mercedes-Benz Stadium, Atlanta GA"},
-  {date:"2026-06-24",g:"C",a:"SCO",b:"BRA",venue:"Hard Rock Stadium, Miami Gardens FL"},
-  {date:"2026-06-24",g:"A",a:"CZE",b:"MEX",venue:"Estadio Banorte, Mexico City Mexico"},
-  {date:"2026-06-24",g:"A",a:"KOR",b:"RSA",venue:"Estadio BBVA, Guadalupe Mexico"},
-  // MD3 — Jun 25
-  {date:"2026-06-25",g:"E",a:"CUW",b:"CIV",venue:"Lincoln Financial Field, Philadelphia PA"},
-  {date:"2026-06-25",g:"E",a:"ECU",b:"GER",venue:"MetLife Stadium, East Rutherford NJ"},
-  {date:"2026-06-25",g:"F",a:"JPN",b:"SWE",venue:"AT&T Stadium, Arlington TX"},
-  {date:"2026-06-25",g:"F",a:"TUN",b:"NED",venue:"GEHA Field at Arrowhead, Kansas City MO"},
-  {date:"2026-06-25",g:"D",a:"PAR",b:"AUS",venue:"Levi's Stadium, Santa Clara CA"},
-  {date:"2026-06-25",g:"D",a:"TUR",b:"USA",venue:"SoFi Stadium, Inglewood CA"},
-  // MD3 — Jun 26
-  {date:"2026-06-26",g:"I",a:"NOR",b:"FRA",venue:"Gillette Stadium, Foxborough MA"},
-  {date:"2026-06-26",g:"I",a:"SEN",b:"IRQ",venue:"BMO Field, Toronto Canada"},
-  {date:"2026-06-26",g:"H",a:"CPV",b:"KSA",venue:"NRG Stadium, Houston TX"},
-  {date:"2026-06-26",g:"H",a:"URU",b:"ESP",venue:"Estadio Akron, Guadalajara Mexico"},
-  {date:"2026-06-26",g:"G",a:"EGY",b:"IRN",venue:"Lumen Field, Seattle WA"},
-  {date:"2026-06-26",g:"G",a:"NZL",b:"BEL",venue:"BC Place, Vancouver Canada"},
-  // MD3 — Jun 27
-  {date:"2026-06-27",g:"L",a:"CRO",b:"GHA",venue:"Lincoln Financial Field, Philadelphia PA"},
-  {date:"2026-06-27",g:"L",a:"PAN",b:"ENG",venue:"MetLife Stadium, East Rutherford NJ"},
-  {date:"2026-06-27",g:"K",a:"COL",b:"POR",venue:"Hard Rock Stadium, Miami Gardens FL"},
-  {date:"2026-06-27",g:"K",a:"COD",b:"UZB",venue:"Mercedes-Benz Stadium, Atlanta GA"},
-  {date:"2026-06-27",g:"J",a:"DZA",b:"AUT",venue:"GEHA Field at Arrowhead, Kansas City MO"},
-  {date:"2026-06-27",g:"J",a:"JOR",b:"ARG",venue:"AT&T Stadium, Arlington TX"},
-];
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const fmtDate=d=>{const[,m,day]=d.split("-");return `${MONTHS[+m-1]} ${+day}`;};
 function getSchedInfo(a,b){return MATCH_SCHEDULE.find(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a))||null;}
+function hasBaseResult(a,b){return (BASE_MATCH_LOG[a]||[]).some(m=>m.opp===b);}
+const SCHEDULED_UNPLAYED=MATCH_SCHEDULE.filter(m=>!hasBaseResult(m.a,m.b));
 
 // ─── CALCULABLE INDICES ─────────────────────────────────────────────────────
 function recencyWeights(n, halflife) {
@@ -221,25 +67,56 @@ function recencyWeights(n, halflife) {
   return w;
 }
 
-function computeIndices(abbr, halflife, matchLog) {
+// Single chronological pass through all played matches, updating both teams
+// simultaneously — fixes the frozen-opponent-Elo approximation in computeIndices.
+function computeAllEarnedElos(matchLog) {
+  const elos = { ...PRE_ELO };
+  const seen = new Set();
+  const played = [];
+  // Group matches in schedule order first
+  for (const m of MATCH_SCHEDULE) {
+    const key = [m.a, m.b].sort().join("|");
+    if (seen.has(key)) continue;
+    const result = (matchLog[m.a] || []).find(r => r.opp === m.b);
+    if (result) { played.push({ a: m.a, b: m.b, gf: result.gf, ga: result.ga }); seen.add(key); }
+  }
+  // KO injected matches not covered by MATCH_SCHEDULE
+  for (const [team, results] of Object.entries(matchLog)) {
+    for (const r of results) {
+      const key = [team, r.opp].sort().join("|");
+      if (seen.has(key)) continue;
+      if ((matchLog[r.opp] || []).find(x => x.opp === team)) {
+        played.push({ a: team, b: r.opp, gf: r.gf, ga: r.ga }); seen.add(key);
+      }
+    }
+  }
+  for (const m of played) {
+    const eA = elos[m.a] || 1500, eB = elos[m.b] || 1500;
+    const expA = 1 / (1 + Math.pow(10, (eB - eA) / 400));
+    const result = m.gf > m.ga ? 1 : m.gf === m.ga ? 0.5 : 0;
+    elos[m.a] += 40 * (result - expA);
+    elos[m.b] += 40 * ((1 - result) - (1 - expA));
+  }
+  return elos;
+}
+
+function computeIndices(abbr, halflife, matchLog, liveElos) {
   const log = matchLog[abbr] || [];
   const gp = log.length;
+  const earnedElo = (liveElos && liveElos[abbr]) || PRE_ELO[abbr] || 1500;
   if (gp === 0) {
-    return { gp:0, formIdx:0, momentum:0, dsi:0, convincing:0, sos:1500, attRate:1, defRate:1.2, earnedElo: PRE_ELO[abbr]||1500 };
+    return { gp:0, formIdx:0, momentum:0, dsi:0, convincing:0, sos:1500, attRate:1, defRate:1.2, earnedElo };
   }
   const w = recencyWeights(gp, halflife);
   const wSum = w.reduce((a,b)=>a+b,0);
   let wGF=0, wGA=0, wResult=0, wMargin=0, wOppElo=0, cleanSheets=0;
-  let earnedElo = PRE_ELO[abbr] || 1500;
   log.forEach((m, i) => {
-    const oppElo = PRE_ELO[m.opp] || 1500;
+    const oppElo = (liveElos && liveElos[m.opp]) || PRE_ELO[m.opp] || 1500;
     wGF += w[i]*m.gf; wGA += w[i]*m.ga; wOppElo += w[i]*oppElo;
     const result = m.gf>m.ga ? 1 : m.gf===m.ga ? 0.5 : 0;
     wResult += w[i]*result;
     wMargin += w[i]*Math.max(-3,Math.min(3,m.gf-m.ga));
     if (m.ga===0) cleanSheets += w[i];
-    const expected = 1/(1+Math.pow(10,(oppElo-earnedElo)/400));
-    earnedElo += 40*w[i]*(result-expected);
   });
   return {
     gp,
@@ -252,8 +129,19 @@ function computeIndices(abbr, halflife, matchLog) {
 
 function poisson(lambda,k){ let f=1; for(let i=2;i<=k;i++)f*=i; return Math.exp(-lambda)*Math.pow(lambda,k)/f; }
 
+// Dixon-Coles correction: adjusts Poisson probabilities for low-score outcomes.
+// ρ=-0.13 is the empirically estimated value from the original 1997 paper.
+function dixonColesTau(x,y,lambda,mu,rho){
+  if(x===0&&y===0) return 1-lambda*mu*rho;
+  if(x===1&&y===0) return 1+mu*rho;
+  if(x===0&&y===1) return 1+lambda*rho;
+  if(x===1&&y===1) return 1-rho;
+  return 1;
+}
+
 function predict(aAbbr,bAbbr,cfg,matchLog){
-  const A=computeIndices(aAbbr,cfg.halflife,matchLog), B=computeIndices(bAbbr,cfg.halflife,matchLog);
+  const liveElos=computeAllEarnedElos(matchLog);
+  const A=computeIndices(aAbbr,cfg.halflife,matchLog,liveElos), B=computeIndices(bAbbr,cfg.halflife,matchLog,liveElos);
   const wA=A.gp/(A.gp+cfg.shrink), wB=B.gp/(B.gp+cfg.shrink);
   const eloA=wA*A.earnedElo+(1-wA)*(PRE_ELO[aAbbr]||1500);
   const eloB=wB*B.earnedElo+(1-wB)*(PRE_ELO[bAbbr]||1500);
@@ -262,10 +150,11 @@ function predict(aAbbr,bAbbr,cfg,matchLog){
   const scoreB=eloB+cfg.wForm*B.formIdx*200+cfg.wMom*B.momentum*25+cfg.wDSI*B.dsi*120+cfg.wConv*B.convincing*40*sosAdjB;
   const eloWinA=1/(1+Math.pow(10,(scoreB-scoreA)/400));
   const baseA=(A.attRate||1)*(1+cfg.wForm*0.1*A.formIdx), baseB=(B.attRate||1)*(1+cfg.wForm*0.1*B.formIdx);
-  const lambdaA=Math.max(0.3,baseA*(1.2/Math.max(0.5,B.defRate))*sosAdjA);
-  const lambdaB=Math.max(0.3,baseB*(1.2/Math.max(0.5,A.defRate))*sosAdjB);
-  let pWin=0,pDraw=0,pLoss=0;
-  for(let i=0;i<=8;i++)for(let j=0;j<=8;j++){const p=poisson(lambdaA,i)*poisson(lambdaB,j); if(i>j)pWin+=p; else if(i===j)pDraw+=p; else pLoss+=p;}
+  const lambdaA=Math.min(3.5,Math.max(0.3,baseA*(Math.max(0.5,B.defRate)/1.2)*sosAdjA));
+  const lambdaB=Math.min(3.5,Math.max(0.3,baseB*(Math.max(0.5,A.defRate)/1.2)*sosAdjB));
+  let pWin=0,pDraw=0,pLoss=0,pTot=0;
+  for(let i=0;i<=8;i++)for(let j=0;j<=8;j++){const p=poisson(lambdaA,i)*poisson(lambdaB,j)*Math.max(0,dixonColesTau(i,j,lambdaA,lambdaB,-0.13)); pTot+=p; if(i>j)pWin+=p; else if(i===j)pDraw+=p; else pLoss+=p;}
+  pWin/=pTot; pDraw/=pTot; pLoss/=pTot;
   const dataMaturity=(wA+wB)/2;
   const poissonW=0.45+0.25*dataMaturity;
   let winA=poissonW*pWin+(1-poissonW)*eloWinA;
@@ -285,6 +174,21 @@ function predict(aAbbr,bAbbr,cfg,matchLog){
     lambdaA:lambdaA.toFixed(2), lambdaB:lambdaB.toFixed(2),
     eloA:Math.round(eloA), eloB:Math.round(eloB), scoreA:Math.round(scoreA), scoreB:Math.round(scoreB),
     idxA:A, idxB:B, wA, wB, dataMaturity };
+}
+
+const C={bg:"#faf7f5",panel:"#e8f4f1",panelAlt:"#F3FFF9",line:"rgba(161,228,219,0.5)",lineStrong:"#A1E4DB",text:"#0a3d3a",dim:"#506c67",green:"#25A497",blue:"#1C5753",coral:"#ff6b47",amber:"#b45309",purple:"#7c3aed",pink:"#be185d",red:"#b91c1c"};
+
+function Slider({label,k,min,max,step,color,help,cfg,onSet}){
+  return (
+    <div style={{marginBottom:"14px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
+        <span style={{fontSize:"12px",color:C.text,fontWeight:600}}>{label}</span>
+        <span style={{fontSize:"12px",fontWeight:800,color}}>{cfg[k].toFixed(2)}</span>
+      </div>
+      <input aria-label={label} type="range" min={min} max={max} step={step} value={cfg[k]} onChange={e=>onSet(k,parseFloat(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer"}}/>
+      {help&&<div style={{fontSize:"10px",color:C.dim,marginTop:"2px"}}>{help}</div>}
+    </div>
+  );
 }
 
 export default function ProgressivePredictor(){
@@ -328,7 +232,13 @@ export default function ProgressivePredictor(){
 
   const injectResult=useCallback(()=>{
     if(injTeam===injOpp)return;
-    setInjects(prev=>[...prev,{round:injRound,team:injTeam,opp:injOpp,a:injTeam,b:injOpp,gf:Number(injGF),ga:Number(injGA)}]);
+    setInjects(prev=>{
+      if(injRound!=="group"){
+        const dup=prev.some(d=>d.round===injRound&&((d.team===injTeam&&d.opp===injOpp)||(d.team===injOpp&&d.opp===injTeam)));
+        if(dup)return prev;
+      }
+      return [...prev,{round:injRound,team:injTeam,opp:injOpp,a:injTeam,b:injOpp,gf:Number(injGF),ga:Number(injGA)}];
+    });
   },[injTeam,injOpp,injGF,injGA,injRound]);
 
   const resetMatchLog=useCallback(()=>{
@@ -336,31 +246,20 @@ export default function ProgressivePredictor(){
     setInjects([]);
   },[]);
 
-  const ranking=useMemo(()=>allAbbrs.map(a=>{
-    const idx=computeIndices(a,cfg.halflife,matchLog);
+  const removeInject=useCallback((idx)=>{
+    setInjects(prev=>prev.filter((_,i)=>i!==idx));
+  },[]);
+
+  const ranking=useMemo(()=>{const liveElos=computeAllEarnedElos(matchLog); return allAbbrs.map(a=>{
+    const idx=computeIndices(a,cfg.halflife,matchLog,liveElos);
     const w=idx.gp/(idx.gp+cfg.shrink);
     const elo=w*idx.earnedElo+(1-w)*(PRE_ELO[a]||1500);
     const score=elo+cfg.wForm*idx.formIdx*200+cfg.wMom*idx.momentum*25+cfg.wDSI*idx.dsi*120+cfg.wConv*idx.convincing*40;
     return {abbr:a,...idx,elo:Math.round(elo),score:Math.round(score)};
-  }).sort((x,y)=>y.score-x.score),[cfg,matchLog,allAbbrs]);
+  }).sort((x,y)=>y.score-x.score);},[cfg,matchLog,allAbbrs]);
 
   const maxScore=ranking[0]?.score||1;
   const pct=v=>(v*100).toFixed(1)+"%";
-  const C={bg:"#faf7f5",panel:"#e8f4f1",panelAlt:"#F3FFF9",line:"rgba(161,228,219,0.5)",lineStrong:"#A1E4DB",text:"#0a3d3a",dim:"#7a9b96",green:"#25A497",blue:"#1C5753",coral:"#ff6b47",amber:"#b45309",purple:"#7c3aed",pink:"#be185d",red:"#b91c1c"};
-
-  const Slider=({label,k,min,max,step,color,help})=>(
-    <div style={{marginBottom:"14px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}>
-        <span style={{fontSize:"12px",color:C.text,fontWeight:600}}>{label}</span>
-        <span style={{fontSize:"12px",fontWeight:800,color}}>{cfg[k].toFixed(2)}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={cfg[k]} onChange={e=>set(k,parseFloat(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer"}}/>
-      {help&&<div style={{fontSize:"10px",color:C.dim,marginTop:"2px"}}>{help}</div>}
-    </div>
-  );
-  const injGroup=TEAM_GROUP[injTeam];
-  const groupMates=(GROUPS[injGroup]||[]).filter(t=>t!==injTeam);
-  const remainingMatches=injRound==="group"?groupMates.filter(b=>!(matchLog[injTeam]||[]).some(m=>m.opp===b)):[];
 
   const idxBadge=(val,color,label)=>(
     <div style={{textAlign:"center",flex:1}}>
@@ -375,7 +274,7 @@ export default function ProgressivePredictor(){
         <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",alignItems:"center",gap:"12px"}}>
           <div><HayahaiLogo scale={0.62} onDark={true} /></div>
           <div style={{textAlign:"center"}}>
-            <h1 style={{margin:0,fontSize:"38px",fontWeight:400,color:"#faf7f5",fontFamily:"'DM Serif Display',Georgia,serif",letterSpacing:"-0.025em",whiteSpace:"nowrap"}}>FIFA Worldcup 2026 — <em style={{color:C.coral,fontStyle:"italic"}}>Predictor</em></h1>
+            <h1 className="wc-header-title" style={{margin:0,fontSize:"38px",fontWeight:400,color:"#faf7f5",fontFamily:"'DM Serif Display',Georgia,serif",letterSpacing:"-0.025em",whiteSpace:"nowrap"}}>FIFA Worldcup 2026 — <em style={{color:C.coral,fontStyle:"italic"}}>Predictor</em></h1>
           </div>
           <div style={{textAlign:"right"}}>
             <button onClick={()=>set("knockout",!cfg.knockout)} style={{background:cfg.knockout?C.coral:"rgba(255,255,255,0.08)",color:cfg.knockout?"#fff":"#A1E4DB",border:`1px solid ${cfg.knockout?C.coral:"rgba(161,228,219,0.3)"}`,borderRadius:"9999px",padding:"8px 18px",fontWeight:700,fontSize:"12px",cursor:"pointer",letterSpacing:"0.5px"}}>{cfg.knockout?"🏆 KNOCKOUT STAGE":"📊 GROUP STAGE"}</button>
@@ -384,7 +283,7 @@ export default function ProgressivePredictor(){
         <div style={{display:"flex",gap:"4px",marginTop:"14px",flexWrap:"wrap"}}>
           {["predict","schedule","indices","tune","inject"].map(t=>(
             <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 16px",background:tab===t?"#25A497":"transparent",color:tab===t?"#0a3d3a":"#A1E4DB",border:"none",borderRadius:"8px 8px 0 0",fontWeight:tab===t?600:400,fontSize:"13px",cursor:"pointer",textTransform:"capitalize",fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif"}}>
-              {t==="predict"?"⚔️ Predict":t==="schedule"?"📅 Schedule":t==="indices"?"📈 Indices":t==="tune"?"🎛️ Tune":"💉 Inject"}
+              {t==="predict"?"⚔️ Predict":t==="schedule"?"📅 Schedule":t==="indices"?"📈 Power Ranking":t==="tune"?"🎛️ Features Tuning":"📋 Official Results"}
             </button>
           ))}
         </div>
@@ -396,14 +295,14 @@ export default function ProgressivePredictor(){
             <div className="wc-predict-teams" style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:"10px",alignItems:"center",marginBottom:"18px"}}>
               <div>
                 <div style={{fontSize:"11px",color:C.dim,marginBottom:"5px"}}>TEAM A</div>
-                <select value={teamA} onChange={e=>setTeamA(e.target.value)} style={{width:"100%",background:C.panel,border:`1px solid ${C.line}`,color:C.text,padding:"9px 11px",borderRadius:"8px",fontSize:"14px"}}>
+                <select aria-label="Team A" value={teamA} onChange={e=>setTeamA(e.target.value)} style={{width:"100%",background:C.panel,border:`1px solid ${C.line}`,color:C.text,padding:"9px 11px",borderRadius:"8px",fontSize:"14px"}}>
                   {allAbbrs.map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
                 </select>
               </div>
               <div style={{color:C.blue,fontWeight:800,fontSize:"16px",paddingTop:"18px",textAlign:"center"}}>VS</div>
               <div>
                 <div style={{fontSize:"11px",color:C.dim,marginBottom:"5px"}}>TEAM B</div>
-                <select value={teamB} onChange={e=>setTeamB(e.target.value)} style={{width:"100%",background:C.panel,border:`1px solid ${C.line}`,color:C.text,padding:"9px 11px",borderRadius:"8px",fontSize:"14px"}}>
+                <select aria-label="Team B" value={teamB} onChange={e=>setTeamB(e.target.value)} style={{width:"100%",background:C.panel,border:`1px solid ${C.line}`,color:C.text,padding:"9px 11px",borderRadius:"8px",fontSize:"14px"}}>
                   {allAbbrs.map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
                 </select>
               </div>
@@ -419,13 +318,13 @@ export default function ProgressivePredictor(){
               <div style={{textAlign:"center",flex:1}}>
                 <div style={{fontSize:"38px"}}>{FLAGS[teamA]}</div>
                 <div style={{fontSize:"15px",fontWeight:700}}>{NAMES[teamA]}</div>
-                <div style={{fontSize:"12px",color:C.dim}}>Elo {result.eloA} · Pwr {result.scoreA}</div>
+                <div style={{fontSize:"12px",color:C.dim}}>Elo {result.eloA} · PWR {ranking.find(t=>t.abbr===teamA)?.score??result.scoreA}</div>
                 <div style={{fontSize:"30px",fontWeight:900,color:C.green,marginTop:"6px"}}>{pct(cfg.knockout?result.koWinA:result.winA)}</div>
                 <div style={{fontSize:"10px",color:C.dim}}>{cfg.knockout?"advances":"win"}</div>
               </div>
               <div style={{textAlign:"center",padding:"0 12px"}}>
                 {!cfg.knockout&&<><div style={{fontSize:"22px",fontWeight:900,color:C.amber}}>{pct(result.draw)}</div><div style={{fontSize:"10px",color:C.dim,marginBottom:"10px"}}>draw</div></>}
-                <div style={{fontSize:"10px",color:C.dim}}>xG</div>
+                <div style={{fontSize:"10px",color:C.dim}}>exp. goals (λ)</div>
                 <div style={{fontSize:"14px",fontWeight:700,color:C.blue}}>{result.lambdaA}–{result.lambdaB}</div>
                 <div style={{marginTop:"8px",fontSize:"10px",color:C.dim}}>data maturity</div>
                 <div style={{fontSize:"13px",fontWeight:700,color:C.purple}}>{(result.dataMaturity*100).toFixed(0)}%</div>
@@ -433,7 +332,7 @@ export default function ProgressivePredictor(){
               <div style={{textAlign:"center",flex:1}}>
                 <div style={{fontSize:"38px"}}>{FLAGS[teamB]}</div>
                 <div style={{fontSize:"15px",fontWeight:700}}>{NAMES[teamB]}</div>
-                <div style={{fontSize:"12px",color:C.dim}}>Elo {result.eloB} · Pwr {result.scoreB}</div>
+                <div style={{fontSize:"12px",color:C.dim}}>Elo {result.eloB} · PWR {ranking.find(t=>t.abbr===teamB)?.score??result.scoreB}</div>
                 <div style={{fontSize:"30px",fontWeight:900,color:C.blue,marginTop:"6px"}}>{pct(cfg.knockout?result.koWinB:result.winB)}</div>
                 <div style={{fontSize:"10px",color:C.dim}}>{cfg.knockout?"advances":"win"}</div>
               </div>
@@ -462,14 +361,20 @@ export default function ProgressivePredictor(){
         {tab==="indices"&&(
           <div>
             <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>LIVE POWER RANKING · recomputes from injected results</div>
-            <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Elo marker: ✓ = exact (eloratings.net) · ~ = FIFA-rank estimate. All match results validated vs CBS Sports.</div>
+            <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Pre-tournament Elo: all 48 teams from eloratings.net (WC 2026 start). Match results validated vs CBS Sports.</div>
             {ranking.map((t,i)=>(
               <div key={t.abbr} style={{background:C.panel,borderRadius:"10px",padding:"11px 14px",marginBottom:"7px",border:`1px solid ${i===0?C.green+"60":C.line}`}}>
-                <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"7px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"6px"}}>
                   <span style={{fontSize:"11px",fontWeight:800,color:C.blue,width:"22px"}}>#{i+1}</span>
                   <span style={{fontSize:"17px"}}>{FLAGS[t.abbr]}</span>
-                  <div style={{flex:1}}><span style={{fontSize:"13px",fontWeight:700}}>{NAMES[t.abbr]}</span><span style={{fontSize:"11px",color:C.dim}}> · {t.gp} GP · Elo {t.elo}{ELO_EXACT.has(t.abbr)?" ✓":" ~"}</span></div>
-                  <span style={{fontSize:"15px",fontWeight:800,color:C.green}}>{(t.score/maxScore*100).toFixed(0)}</span>
+                  <div style={{flex:1}}><span style={{fontSize:"13px",fontWeight:700}}>{NAMES[t.abbr]}</span><span style={{fontSize:"11px",color:C.dim}}> · {t.gp} GP · Elo {t.elo}</span></div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:"16px",fontWeight:800,color:C.green}}>{t.score}</div>
+                    <div style={{fontSize:"9px",color:C.dim,letterSpacing:"1px"}}>PWR</div>
+                  </div>
+                </div>
+                <div style={{height:"3px",background:C.line,borderRadius:"2px",marginBottom:"7px"}}>
+                  <div style={{height:"3px",borderRadius:"2px",background:`linear-gradient(90deg,${C.green},${C.blue})`,width:`${(t.score/maxScore*100).toFixed(1)}%`}}/>
                 </div>
                 <div style={{display:"flex",gap:"4px"}}>
                   {idxBadge(t.formIdx.toFixed(2),C.green,"FORM")}
@@ -489,17 +394,17 @@ export default function ProgressivePredictor(){
           <div>
             <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"16px"}}>FEATURE WEIGHT INJECTION · live model tuning</div>
             <div style={{background:C.panel,borderRadius:"12px",padding:"18px",border:`1px solid ${C.line}`,marginBottom:"14px"}}>
-              <Slider label="Form Index weight" k="wForm" min={0} max={2.5} step={0.1} color={C.green} help="Recency-weighted points rate (W/D/L)"/>
-              <Slider label="Momentum weight" k="wMom" min={0} max={2.5} step={0.1} color={C.amber} help="Trend: latest GD minus first GD"/>
-              <Slider label="Defensive Solidity weight" k="wDSI" min={0} max={2.5} step={0.1} color={C.purple} help="Recency-weighted clean-sheet rate"/>
-              <Slider label="Convincingness weight" k="wConv" min={0} max={2.5} step={0.1} color={C.pink} help="Margin-of-victory quality (capped ±3)"/>
-              <Slider label="Strength-of-Schedule weight" k="wSOS" min={0} max={2.5} step={0.1} color={C.blue} help="Adjusts form by avg opponent Elo"/>
-              <Slider label="Big-game experience weight" k="wExp" min={0} max={2.5} step={0.1} color={C.text} help="Knockout-only: pedigree drift in tight games"/>
+              <Slider label="Form Index weight" k="wForm" min={0} max={2.5} step={0.1} color={C.green} help="How much a team's win/draw/loss record in this tournament shifts the prediction. Recent matches are weighted more than early ones. Slide right if you believe tournament form is the best signal; slide left to rely more on pre-tournament Elo." cfg={cfg} onSet={set}/>
+              <Slider label="Momentum weight" k="wMom" min={0} max={2.5} step={0.1} color={C.amber} help="Captures whether a team is peaking or wobbling — measured as the goal-difference trend from their first match to their latest. A team winning by wider margins over time scores higher. Increase this if you think trajectory matters more than average form." cfg={cfg} onSet={set}/>
+              <Slider label="Defensive Solidity weight" k="wDSI" min={0} max={2.5} step={0.1} color={C.purple} help="Measures how often a team has kept clean sheets, weighted toward recent matches. Strong defensive teams tend to control outcomes in tight knockout games. Raise this in later stages when a single goal often decides the match." cfg={cfg} onSet={set}/>
+              <Slider label="Convincingness weight" k="wConv" min={0} max={2.5} step={0.1} color={C.pink} help="Rewards teams that not only win, but win by large, consistent margins — margin capped at ±3 so a 7-0 blowout doesn't distort the model. Increase this to favour teams that have been dominant, not just unbeaten." cfg={cfg} onSet={set}/>
+              <Slider label="Strength-of-Schedule weight" k="wSOS" min={0} max={2.5} step={0.1} color={C.blue} help="Scales a team's form stats by the average Elo of opponents they have faced. Beating a top-ranked side counts for more than beating a weak side. Raise this when comparing teams from different groups with very different opposition quality." cfg={cfg} onSet={set}/>
+              <Slider label="Big-game experience weight" k="wExp" min={0} max={2.5} step={0.1} color={C.text} help="Knockout-only: in close matches, teams with a higher pre-tournament Elo get a small pedigree boost — reflecting years of World Cup experience in high-pressure games. Raise this if you believe established giants hold an edge over upstarts in do-or-die situations." cfg={cfg} onSet={set}/>
             </div>
             <div style={{background:C.panel,borderRadius:"12px",padding:"18px",border:`1px solid ${C.line}`}}>
               <div style={{fontSize:"11px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"12px"}}>PROGRESSIVE LEARNING CONTROLS</div>
-              <Slider label="Prior shrinkage (k)" k="shrink" min={0.5} max={5} step={0.5} color={C.green} help="Lower = trust tournament data faster vs pre-tournament Elo"/>
-              <Slider label="Recency half-life (matches)" k="halflife" min={0.5} max={4} step={0.5} color={C.blue} help="Lower = newest result dominates more heavily"/>
+              <Slider label="Prior shrinkage (k)" k="shrink" min={0.5} max={5} step={0.5} color={C.green} help="Controls how quickly the model shifts its trust from pre-tournament Elo to live tournament stats. Low k (e.g. 0.5–1.0) means even 1–2 matches heavily update the model; high k (4–5) means it stays close to the pre-tournament Elo until a team has played many games. Useful when you think early results are noisy — raise k in the group stage, lower it by the knockouts." cfg={cfg} onSet={set}/>
+              <Slider label="Recency half-life (matches)" k="halflife" min={0.5} max={4} step={0.5} color={C.blue} help="Sets how fast older matches fade in importance relative to newer ones. At 1.0, the most recent match is weighted twice as heavily as the one before it. At 0.5, it is four times heavier — making the model very streak-sensitive. Lower values suit a fast-evolving tournament where form can shift dramatically match to match." cfg={cfg} onSet={set}/>
             </div>
             <div style={{marginTop:"12px",padding:"12px",background:"rgba(10,61,58,0.05)",border:"1px solid rgba(161,228,219,0.5)",borderRadius:"10px",fontSize:"12px",color:C.blue,lineHeight:1.6}}>
               <strong style={{color:C.text}}>Why this is progressive:</strong> as GP rises, prior shrinkage GP/(GP+k) shifts weight from pre-tournament Elo toward earned-Elo and form indices. By the knockout stage (GP≥3), the model is ~70%+ data-driven. The Poisson/Elo ensemble weight also scales with data maturity.
@@ -552,7 +457,7 @@ export default function ProgressivePredictor(){
                 <div style={{background:C.panelAlt,borderRadius:"10px",padding:"12px",marginBottom:"14px",border:`1px solid ${C.lineStrong}`}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
                     <span style={{fontSize:"11px",fontWeight:800,color:C.green,letterSpacing:"1px"}}>GROUP {openGroup} — FIXTURES</span>
-                    <button onClick={()=>setOpenGroup(null)} style={{background:"transparent",border:"none",color:C.dim,fontSize:"18px",lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
+                    <button onClick={()=>setOpenGroup(null)} aria-label="Close" style={{background:"transparent",border:"none",color:C.dim,fontSize:"18px",lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
                   </div>
                   {rows.map(({a,b,info,res})=>(
                     <div key={a+b} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.line}`}}>
@@ -586,7 +491,7 @@ export default function ProgressivePredictor(){
                 const playedCount=pairs.filter(p=>p.res).length;
                 const isOpen=openGroup===g;
                 return (
-                  <div key={g} onClick={()=>setOpenGroup(isOpen?null:g)} style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${isOpen?C.lineStrong:C.line}`,cursor:"pointer",boxShadow:isOpen?`0 0 0 1px ${C.lineStrong}`:"none"}}>
+                  <div key={g} role="button" tabIndex={0} aria-expanded={isOpen} aria-label={`Group ${g} fixtures`} onClick={()=>setOpenGroup(isOpen?null:g)} onKeyDown={(e)=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setOpenGroup(isOpen?null:g);}}} style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${isOpen?C.lineStrong:C.line}`,cursor:"pointer",boxShadow:isOpen?`0 0 0 1px ${C.lineStrong}`:"none"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
                       <span style={{fontSize:"12px",fontWeight:800,color:C.blue,letterSpacing:"1px"}}>GROUP {g}</span>
                       <span style={{fontSize:"10px",color:C.dim}}>{playedCount}/6</span>
@@ -641,81 +546,209 @@ export default function ProgressivePredictor(){
           );
         })()}
 
-        {tab==="inject"&&(
-          <div>
-            <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"14px"}}>INJECT RESULT · live model recalibration</div>
-            <div style={{display:"flex",gap:"6px",marginBottom:"14px",flexWrap:"wrap"}}>
-              {[["group","Group Stage"],["R32","R of 32"],["R16","R of 16"],["QF","Quarter-Finals"],["SF","Semi-Finals"],["Final","Final"]].map(([r,label])=>(
-                <button key={r} onClick={()=>{
-                  if(r==="group"&&!groupMates.includes(injOpp)&&groupMates.length)setInjOpp(groupMates[0]);
-                  setInjRound(r);
-                }} style={{padding:"5px 11px",background:injRound===r?C.coral:"transparent",color:injRound===r?"#fff":C.dim,border:`1px solid ${injRound===r?C.coral:C.line}`,borderRadius:"9999px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>{label}</button>
-              ))}
-            </div>
-            {injRound==="group"&&remainingMatches.length===0&&(
-              <div style={{fontSize:"11px",color:C.green,marginBottom:"10px",padding:"8px 12px",background:"rgba(37,164,151,0.08)",borderRadius:"8px",border:`1px solid rgba(37,164,151,0.2)`}}>✓ All Group {injGroup} matches logged for {NAMES[injTeam]}</div>
-            )}
-            {injRound==="group"&&remainingMatches.length>0&&(
-              <div style={{background:C.panelAlt,borderRadius:"10px",padding:"10px",marginBottom:"12px",border:`1px solid ${C.line}`}}>
-                <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"6px"}}>GROUP {injGroup} — REMAINING FOR {NAMES[injTeam]}</div>
-                <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
-                  {remainingMatches.map(b=>(
-                    <button key={b} onClick={()=>setInjOpp(b)} style={{background:injOpp===b?C.green:"transparent",color:injOpp===b?"#fff":C.text,border:`1px solid ${injOpp===b?C.green:C.line}`,borderRadius:"8px",padding:"5px 10px",fontSize:"12px",cursor:"pointer",fontWeight:600}}>
-                      {FLAGS[b]} {NAMES[b]}
-                    </button>
+        {tab==="inject"&&(()=>{
+          const isUserInjected=(a,b)=>injects.some(d=>d.round==="group"&&((d.team===a&&d.opp===b)||(d.team===b&&d.opp===a)));
+          const pending=SCHEDULED_UNPLAYED.filter(m=>!isUserInjected(m.a,m.b));
+          const userAdded=SCHEDULED_UNPLAYED.filter(m=>isUserInjected(m.a,m.b));
+          const isSel=(a,b)=>injRound==="group"&&injTeam===a&&injOpp===b;
+          const koInjs=injects.filter(d=>d.round&&d.round!=="group");
+          return (
+            <div>
+              {/* ── Group Standings ── */}
+              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>GROUP STANDINGS · AS OF 2026-06-24</div>
+              <div style={{fontSize:"10px",color:C.dim,marginBottom:"14px"}}>Source: CBS Sports. Top 2 from each group advance; 8 best 3rd-place teams also qualify.</div>
+              <div className="wc-schedule-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"24px"}}>
+                {Object.entries(GROUP_STANDINGS).map(([g, teams])=>{
+                  const allDone=teams.every(r=>r.gp===3);
+                  return (
+                    <div key={g} style={{background:C.panel,borderRadius:"10px",padding:"10px",border:`1px solid ${allDone?C.green+"50":C.line}`}}>
+                      <div style={{fontSize:"11px",fontWeight:800,color:C.blue,letterSpacing:"1px",marginBottom:"7px"}}>GROUP {g}</div>
+                      <table style={{width:"100%",borderCollapse:"collapse",fontSize:"10px"}}>
+                        <thead>
+                          <tr style={{color:C.dim}}>
+                            <th style={{textAlign:"left",fontWeight:600,paddingBottom:"4px",width:"14px"}}>#</th>
+                            <th style={{textAlign:"left",fontWeight:600,paddingBottom:"4px"}}>Team</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"20px"}}>GP</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"16px"}}>W</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"16px"}}>D</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"16px"}}>L</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"24px"}}>GD</th>
+                            <th style={{textAlign:"center",fontWeight:700,paddingBottom:"4px",width:"22px",color:C.text}}>Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {teams.map((row,i)=>{
+                            const isQ=i<2, is3rd=i===2;
+                            const gd=row.gf-row.ga;
+                            return (
+                              <tr key={row.t} style={{borderTop:`1px solid ${C.line}`}}>
+                                <td style={{padding:"4px 0",color:isQ?C.green:is3rd?C.amber:C.dim,fontWeight:700,fontSize:"9px"}}>{i+1}</td>
+                                <td style={{padding:"4px 2px"}}>
+                                  <span style={{display:"inline-flex",alignItems:"center",gap:"3px",borderLeft:`2px solid ${isQ?C.green:is3rd?C.amber:"transparent"}`,paddingLeft:"4px"}}>
+                                    {FLAGS[row.t]}<span style={{fontWeight:600}}>{row.t}</span>
+                                  </span>
+                                </td>
+                                <td style={{textAlign:"center",color:C.dim}}>{row.gp}</td>
+                                <td style={{textAlign:"center",fontWeight:700,color:row.w>0?C.green:C.dim}}>{row.w}</td>
+                                <td style={{textAlign:"center",color:C.dim}}>{row.d}</td>
+                                <td style={{textAlign:"center",color:row.l>0?C.red:C.dim}}>{row.l}</td>
+                                <td style={{textAlign:"center",color:gd>0?C.green:gd<0?C.red:C.dim}}>{gd>0?"+":""}{gd}</td>
+                                <td style={{textAlign:"center",fontWeight:800,color:isQ?C.green:C.text}}>{row.pts}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Add Upcoming Result ── */}
+              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>ADD UPCOMING RESULT</div>
+              <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Scheduled matches not yet in official results. Click a match, enter the final score, then add.</div>
+              {pending.length===0&&userAdded.length===0?(
+                <div style={{padding:"10px 14px",background:"rgba(37,164,151,0.06)",border:`1px solid rgba(37,164,151,0.2)`,borderRadius:"8px",fontSize:"11px",color:C.green,marginBottom:"24px"}}>
+                  All scheduled group matches are covered by official results.
+                </div>
+              ):(
+                <div style={{marginBottom:"24px"}}>
+                  {pending.length>0&&(
+                    <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`,marginBottom:"10px"}}>
+                      <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"8px"}}>SELECT A MATCH</div>
+                      {pending.map(m=>{
+                        const sel=isSel(m.a,m.b);
+                        return (
+                          <div key={m.a+m.b} style={{marginBottom:"4px"}}>
+                            <button onClick={()=>{setInjTeam(m.a);setInjOpp(m.b);setInjRound("group");setInjGF(0);setInjGA(0);}}
+                              style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:sel?"rgba(37,164,151,0.08)":"transparent",border:`1px solid ${sel?C.green:C.line}`,borderRadius:sel?"8px 8px 0 0":"8px",cursor:"pointer",textAlign:"left",boxSizing:"border-box"}}>
+                              <span style={{fontSize:"12px",fontWeight:600,color:C.text}}>{FLAGS[m.a]} {NAMES[m.a]} <span style={{color:C.dim,fontWeight:400}}>vs</span> {FLAGS[m.b]} {NAMES[m.b]}</span>
+                              <span style={{fontSize:"10px",color:C.dim,whiteSpace:"nowrap",marginLeft:"8px"}}>{fmtDate(m.date)}</span>
+                            </button>
+                            {sel&&(
+                              <div style={{padding:"14px",background:C.panelAlt,border:`1px solid ${C.green}`,borderTop:"none",borderRadius:"0 0 8px 8px"}}>
+                                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"20px",marginBottom:"12px"}}>
+                                  <div style={{textAlign:"center"}}>
+                                    <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>{NAMES[m.a].toUpperCase()}</div>
+                                    <input aria-label={`${m.a} goals`} type="number" min={0} max={12} value={injGF} onChange={e=>setInjGF(Number(e.target.value))} style={{width:"60px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"6px",borderRadius:"8px",fontSize:"22px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
+                                  </div>
+                                  <div style={{fontSize:"18px",color:C.dim,marginTop:"14px"}}>–</div>
+                                  <div style={{textAlign:"center"}}>
+                                    <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>{NAMES[m.b].toUpperCase()}</div>
+                                    <input aria-label={`${m.b} goals`} type="number" min={0} max={12} value={injGA} onChange={e=>setInjGA(Number(e.target.value))} style={{width:"60px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"6px",borderRadius:"8px",fontSize:"22px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
+                                  </div>
+                                </div>
+                                <button onClick={injectResult} style={{width:"100%",background:C.coral,color:"#fff",border:"none",borderRadius:"8px",padding:"9px",fontWeight:800,fontSize:"13px",cursor:"pointer"}}>
+                                  Add {FLAGS[m.a]} {injGF}–{injGA} {FLAGS[m.b]}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {userAdded.length>0&&(
+                    <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`}}>
+                      <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"8px"}}>YOUR ADDED RESULTS</div>
+                      {userAdded.map(m=>{
+                        const idx=injects.findIndex(d=>d.round==="group"&&((d.team===m.a&&d.opp===m.b)||(d.team===m.b&&d.opp===m.a)));
+                        const d=injects[idx];
+                        const gf=d.team===m.a?d.gf:d.ga, ga=d.team===m.a?d.ga:d.gf;
+                        return (
+                          <div key={m.a+m.b} style={{display:"flex",alignItems:"center",gap:"6px",padding:"5px 0",borderBottom:`1px solid ${C.line}`}}>
+                            <span style={{fontSize:"12px",flex:1,textAlign:"right"}}>{FLAGS[m.a]} {NAMES[m.a]}</span>
+                            <span style={{fontSize:"13px",fontWeight:800,color:gf>ga?C.green:gf<ga?C.red:C.amber,minWidth:"36px",textAlign:"center"}}>{gf}–{ga}</span>
+                            <span style={{fontSize:"12px",flex:1}}>{NAMES[m.b]} {FLAGS[m.b]}</span>
+                            <button onClick={()=>removeInject(idx)} aria-label="Remove result" style={{background:"transparent",border:"none",color:C.dim,fontSize:"16px",lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Knockout Stage ── */}
+              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"8px"}}>KNOCKOUT STAGE</div>
+              <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`,marginBottom:injects.length>0?"12px":"0"}}>
+                <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
+                  {[["R32","R of 32"],["R16","R of 16"],["QF","QF"],["SF","SF"],["Final","Final"]].map(([r,label])=>(
+                    <button key={r} onClick={()=>setInjRound(r)} style={{padding:"5px 11px",background:injRound===r?C.coral:"transparent",color:injRound===r?"#fff":C.dim,border:`1px solid ${injRound===r?C.coral:C.line}`,borderRadius:"9999px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>{label}</button>
                   ))}
                 </div>
+                {injRound==="group"?(
+                  <div style={{fontSize:"11px",color:C.dim,fontStyle:"italic"}}>Select a round above to record a knockout result.</div>
+                ):(
+                  <>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:"8px",alignItems:"end",marginBottom:"10px"}}>
+                      <div>
+                        <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>TEAM A</div>
+                        <select aria-label="Knockout Team A" value={injTeam} onChange={e=>setInjTeam(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"7px",borderRadius:"8px",fontSize:"12px"}}>
+                          {Object.keys(NAMES).map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
+                        </select>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"4px"}}>
+                        <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px"}}>SCORE</div>
+                        <div style={{display:"flex",alignItems:"center",gap:"4px"}}>
+                          <input aria-label={`${injTeam} goals`} type="number" min={0} max={12} value={injGF} onChange={e=>setInjGF(Number(e.target.value))} style={{width:"44px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"5px",borderRadius:"8px",fontSize:"16px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
+                          <span style={{color:C.dim,fontWeight:700}}>–</span>
+                          <input aria-label={`${injOpp} goals`} type="number" min={0} max={12} value={injGA} onChange={e=>setInjGA(Number(e.target.value))} style={{width:"44px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"5px",borderRadius:"8px",fontSize:"16px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>TEAM B</div>
+                        <select aria-label="Knockout Team B" value={injOpp} onChange={e=>setInjOpp(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"7px",borderRadius:"8px",fontSize:"12px"}}>
+                          {Object.keys(NAMES).map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <button onClick={injectResult} style={{width:"100%",background:C.coral,color:"#fff",border:"none",borderRadius:"8px",padding:"9px",fontWeight:800,fontSize:"13px",cursor:"pointer"}}>
+                      Add result · {injRound==="R32"?"Round of 32":injRound==="R16"?"Round of 16":injRound==="QF"?"Quarter-Finals":injRound==="SF"?"Semi-Finals":"Final"}
+                    </button>
+                  </>
+                )}
+                {koInjs.length>0&&(
+                  <div style={{marginTop:"12px",paddingTop:"12px",borderTop:`1px solid ${C.line}`}}>
+                    <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"6px"}}>KNOCKOUT RESULTS ADDED</div>
+                    {["R32","R16","QF","SF","Final"].map(r=>{
+                      const rms=koInjs.filter(d=>d.round===r);
+                      if(!rms.length)return null;
+                      const rl=r==="R32"?"Round of 32":r==="R16"?"Round of 16":r==="QF"?"QF":r==="SF"?"SF":"Final";
+                      return (
+                        <div key={r} style={{marginBottom:"6px"}}>
+                          <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"3px"}}>{rl}</div>
+                          {rms.map((d,i)=>{
+                            const gi=injects.indexOf(d);
+                            return (
+                              <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
+                                <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.a]} {NAMES[d.a]}</span>
+                                <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}</span>
+                                <span style={{fontSize:"11px",flex:1}}>{NAMES[d.b]} {FLAGS[d.b]}</span>
+                                <button onClick={()=>removeInject(gi)} aria-label="Remove" style={{background:"transparent",border:"none",color:C.dim,fontSize:"16px",lineHeight:1,cursor:"pointer",padding:"0 2px"}}>×</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
-            <div style={{background:C.panel,borderRadius:"12px",padding:"18px",border:`1px solid ${C.line}`}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"14px"}}>
-                <div>
-                  <div style={{fontSize:"11px",color:C.dim,marginBottom:"5px"}}>TEAM</div>
-                  <select value={injTeam} onChange={e=>{
-                    const t=e.target.value;
-                    setInjTeam(t);
-                    if(injRound==="group"){const mates=(GROUPS[TEAM_GROUP[t]]||[]).filter(x=>x!==t);if(mates.length&&!mates.includes(injOpp))setInjOpp(mates[0]);}
-                  }} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"9px",borderRadius:"8px",fontSize:"13px"}}>
-                    {Object.keys(NAMES).map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div style={{fontSize:"11px",color:C.dim,marginBottom:"5px"}}>OPPONENT{injRound==="group"&&<span style={{fontSize:"9px",marginLeft:"4px",color:C.dim}}>(group only)</span>}</div>
-                  <select value={injOpp} onChange={e=>setInjOpp(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"9px",borderRadius:"8px",fontSize:"13px"}}>
-                    {(injRound==="group"?groupMates:Object.keys(NAMES)).map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",marginBottom:"16px"}}>
-                <div>
-                  <div style={{fontSize:"11px",color:C.dim,marginBottom:"5px"}}>{injTeam} GOALS</div>
-                  <input type="number" min={0} max={12} value={injGF} onChange={e=>setInjGF(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"9px",borderRadius:"8px",fontSize:"14px",boxSizing:"border-box"}}/>
-                </div>
-                <div>
-                  <div style={{fontSize:"11px",color:C.dim,marginBottom:"5px"}}>{injOpp} GOALS</div>
-                  <input type="number" min={0} max={12} value={injGA} onChange={e=>setInjGA(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"9px",borderRadius:"8px",fontSize:"14px",boxSizing:"border-box"}}/>
-                </div>
-              </div>
-              <button onClick={injectResult} style={{width:"100%",background:C.coral,color:"#fff",border:"none",borderRadius:"8px",padding:"12px",fontWeight:800,fontSize:"14px",cursor:"pointer"}}>💉 Inject {injGF}–{injGA} · {injRound==="group"?"Group Stage":injRound==="R32"?"Round of 32":injRound==="R16"?"Round of 16":injRound==="QF"?"Quarter-Finals":injRound==="SF"?"Semi-Finals":"Final"}</button>
-              <button onClick={resetMatchLog} style={{width:"100%",marginTop:"10px",background:"transparent",color:C.dim,border:`1px solid ${C.line}`,borderRadius:"8px",padding:"10px",fontWeight:700,fontSize:"13px",cursor:"pointer"}}>🔄 Reset all results to default</button>
+
+              {injects.length>0&&(
+                <button onClick={resetMatchLog} style={{width:"100%",background:"transparent",color:C.dim,border:`1px solid ${C.line}`,borderRadius:"8px",padding:"10px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                  Reset all added results
+                </button>
+              )}
             </div>
-            <div style={{marginTop:"14px",background:C.panel,borderRadius:"12px",padding:"16px",border:`1px solid ${C.line}`}}>
-              <div style={{fontSize:"11px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"10px"}}>{FLAGS[injTeam]} {NAMES[injTeam]} · MATCH LOG ({(matchLog[injTeam]||[]).length})</div>
-              {(matchLog[injTeam]||[]).map((m,i)=>(
-                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<((matchLog[injTeam]||[]).length-1)?`1px solid ${C.line}`:"none",fontSize:"13px"}}>
-                  <span style={{color:C.dim}}>vs {FLAGS[m.opp]} {m.opp}</span>
-                  <span style={{fontWeight:700,color:m.gf>m.ga?C.green:m.gf<m.ga?C.red:C.amber}}>{m.gf}–{m.ga}</span>
-                </div>
-              ))}
-              {(matchLog[injTeam]||[]).length===0&&<div style={{fontSize:"12px",color:C.dim}}>No matches logged yet.</div>}
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <div style={{textAlign:"center",padding:"14px",borderTop:"1px solid rgba(161,228,219,0.4)",fontSize:"11px",color:C.dim,lineHeight:1.6}}>
         Progressive Elo-Poisson · Bayesian prior decay · {cfg.knockout?"knockout":"group"} mode<br/>
-        Results validated vs CBS Sports group tables · Elo: 18 teams exact from eloratings.net (21 Jun 2026), rest FIFA-rank-ordered estimates
+        Results validated vs CBS Sports group tables · Elo: all 48 teams from eloratings.net pre-tournament ratings (WC 2026 start)
       </div>
     </div>
   );

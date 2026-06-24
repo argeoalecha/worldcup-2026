@@ -9,10 +9,29 @@ body { background: #faf7f5; }
   .wc-idx-row-label { width: 90px !important; }
   .wc-body          { padding: 16px !important; }
   .wc-schedule-grid { grid-template-columns: 1fr !important; }
-  /* Stack header: logo top, title below, button inline with title */
-  .wc-header        { padding: 12px 14px 0 !important; }
+
+  /* Header: row 1 = logo + button, row 2 = title full-width */
+  .wc-header { padding: 12px 14px 0 !important; }
   .wc-header > div:first-child {
-    grid-template-columns: auto 1fr !important;
+    grid-template-columns: auto 1fr auto !important;
     grid-template-rows: auto auto !important;
+  }
+  /* Logo stays top-left */
+  .wc-header > div:first-child > div:nth-child(1) {
+    grid-column: 1; grid-row: 1;
+  }
+  /* Title spans full width on second row */
+  .wc-header > div:first-child > div:nth-child(2) {
+    grid-column: 1 / -1; grid-row: 2; padding: 8px 0 4px;
+  }
+  /* Button stays top-right */
+  .wc-header > div:first-child > div:nth-child(3) {
+    grid-column: 3; grid-row: 1; text-align: right;
+  }
+  /* Scale down title font and allow wrapping */
+  .wc-header-title {
+    font-size: 22px !important;
+    white-space: normal !important;
+    letter-spacing: -0.02em !important;
   }
 }
