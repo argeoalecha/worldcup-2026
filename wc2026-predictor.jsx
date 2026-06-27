@@ -28,8 +28,8 @@ function buildMatchLog(injects) {
   return log;
 }
 
-const CFG_DEFAULTS = {knockout:true,shrink:1.5,halflife:1.5,wForm:1.0,wMom:1.0,wDSI:1.0,wConv:1.0,wSOS:1.0,wExp:1.0};
-const PARAM_MAP = {a:"teamA",b:"teamB",ko:"knockout",wf:"wForm",wm:"wMom",wd:"wDSI",wc:"wConv",ws:"wSOS",we:"wExp",k:"shrink",hl:"halflife"};
+const CFG_DEFAULTS = {knockout:true,shrink:1.5,halflife:1.5,wForm:1.0,wMom:1.0,wDSI:1.0,wConv:1.0,wSOS:1.0,wExp:1.0,travel:true};
+const PARAM_MAP = {a:"teamA",b:"teamB",ko:"knockout",wf:"wForm",wm:"wMom",wd:"wDSI",wc:"wConv",ws:"wSOS",we:"wExp",k:"shrink",hl:"halflife",tr:"travel"};
 
 function parseUrlParams() {
   const p = new URLSearchParams(window.location.search);
@@ -45,6 +45,7 @@ function parseUrlParams() {
   if(p.has("we"))  cfg.wExp     = Math.min(2.5,Math.max(0,parseFloat(p.get("we"))||1));
   if(p.has("k"))   cfg.shrink   = Math.min(5,Math.max(0.5,parseFloat(p.get("k"))||1.5));
   if(p.has("hl"))  cfg.halflife = Math.min(4,Math.max(0.5,parseFloat(p.get("hl"))||1.5));
+  if(p.has("tr"))  cfg.travel   = p.get("tr")==="1";
   return {teamA, teamB, cfg};
 }
 
@@ -139,19 +140,19 @@ function dixonColesTau(x,y,lambda,mu,rho){
   return 1;
 }
 
-function predict(aAbbr,bAbbr,cfg,matchLog){
+function predict(aAbbr,bAbbr,cfg,matchLog,penA=0,penB=0){
   const liveElos=computeAllEarnedElos(matchLog);
   const A=computeIndices(aAbbr,cfg.halflife,matchLog,liveElos), B=computeIndices(bAbbr,cfg.halflife,matchLog,liveElos);
   const wA=A.gp/(A.gp+cfg.shrink), wB=B.gp/(B.gp+cfg.shrink);
   const eloA=wA*A.earnedElo+(1-wA)*(PRE_ELO[aAbbr]||1500);
   const eloB=wB*B.earnedElo+(1-wB)*(PRE_ELO[bAbbr]||1500);
   const sosAdjA=1+cfg.wSOS*((A.sos-1650)/1000), sosAdjB=1+cfg.wSOS*((B.sos-1650)/1000);
-  const scoreA=eloA+cfg.wForm*A.formIdx*200+cfg.wMom*A.momentum*25+cfg.wDSI*A.dsi*120+cfg.wConv*A.convincing*40*sosAdjA;
-  const scoreB=eloB+cfg.wForm*B.formIdx*200+cfg.wMom*B.momentum*25+cfg.wDSI*B.dsi*120+cfg.wConv*B.convincing*40*sosAdjB;
+  const scoreA=eloA+cfg.wForm*A.formIdx*200+cfg.wMom*A.momentum*25+cfg.wDSI*A.dsi*120+cfg.wConv*A.convincing*40*sosAdjA-penA;
+  const scoreB=eloB+cfg.wForm*B.formIdx*200+cfg.wMom*B.momentum*25+cfg.wDSI*B.dsi*120+cfg.wConv*B.convincing*40*sosAdjB-penB;
   const eloWinA=1/(1+Math.pow(10,(scoreB-scoreA)/400));
   const baseA=(A.attRate||1)*(1+cfg.wForm*0.1*A.formIdx), baseB=(B.attRate||1)*(1+cfg.wForm*0.1*B.formIdx);
-  const lambdaA=Math.min(3.5,Math.max(0.3,baseA*(Math.max(0.5,B.defRate)/1.2)*sosAdjA));
-  const lambdaB=Math.min(3.5,Math.max(0.3,baseB*(Math.max(0.5,A.defRate)/1.2)*sosAdjB));
+  const lambdaA=Math.min(3.5,Math.max(0.3,baseA*(Math.max(0.5,B.defRate)/1.2)*sosAdjA*(1-penA/400)));
+  const lambdaB=Math.min(3.5,Math.max(0.3,baseB*(Math.max(0.5,A.defRate)/1.2)*sosAdjB*(1-penB/400)));
   let pWin=0,pDraw=0,pLoss=0,pTot=0;
   for(let i=0;i<=8;i++)for(let j=0;j<=8;j++){const p=poisson(lambdaA,i)*poisson(lambdaB,j)*Math.max(0,dixonColesTau(i,j,lambdaA,lambdaB,-0.13)); pTot+=p; if(i>j)pWin+=p; else if(i===j)pDraw+=p; else pLoss+=p;}
   pWin/=pTot; pDraw/=pTot; pLoss/=pTot;
@@ -174,6 +175,41 @@ function predict(aAbbr,bAbbr,cfg,matchLog){
     lambdaA:lambdaA.toFixed(2), lambdaB:lambdaB.toFixed(2),
     eloA:Math.round(eloA), eloB:Math.round(eloB), scoreA:Math.round(scoreA), scoreB:Math.round(scoreB),
     idxA:A, idxB:B, wA, wB, dataMaturity };
+}
+
+// ─── TRAVEL FATIGUE ──────────────────────────────────────────────────────────
+// tz = hours behind Eastern Time. East-shift compounds distance burden.
+// Penalty = min(20, burden/1000 * 10) Elo-score points subtracted from scoreA/B
+// and a proportional lambda reduction (1 - pen/400).
+const VENUE_INFO = {
+  "Arlington":       {lat:32.748,lon:-97.092,tz:1},
+  "Philadelphia":    {lat:39.901,lon:-75.168,tz:0},
+  "East Rutherford": {lat:40.813,lon:-74.074,tz:0},
+  "Santa Clara":     {lat:37.403,lon:-121.970,tz:3},
+  "Houston":         {lat:29.685,lon:-95.411,tz:1},
+  "Foxborough":      {lat:42.091,lon:-71.264,tz:0},
+  "Toronto":         {lat:43.633,lon:-79.419,tz:0},
+  "Guadalajara":     {lat:20.642,lon:-103.399,tz:1},
+  "Seattle":         {lat:47.595,lon:-122.332,tz:3},
+  "Vancouver":       {lat:49.277,lon:-123.112,tz:3},
+  "Atlanta":         {lat:33.755,lon:-84.401,tz:0},
+  "Miami Gardens":   {lat:25.958,lon:-80.239,tz:0},
+  "Mexico City":     {lat:19.303,lon:-99.150,tz:1},
+  "Guadalupe":       {lat:25.676,lon:-100.252,tz:1},
+  "Kansas City":     {lat:39.049,lon:-94.484,tz:1},
+  "Inglewood":       {lat:33.953,lon:-118.339,tz:3},
+};
+function venueInfo(str){for(const[k,v]of Object.entries(VENUE_INFO))if(str.includes(k))return v;return null;}
+function haversineKm(la1,lo1,la2,lo2){const R=6371,r=d=>d*Math.PI/180,dLa=r(la2-la1),dLo=r(lo2-lo1),a=Math.sin(dLa/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function getTeamPrevVenue(abbr,matchLog){for(let i=MATCH_SCHEDULE.length-1;i>=0;i--){const m=MATCH_SCHEDULE[i];if(m.a===abbr||m.b===abbr)if((matchLog[m.a]||[]).some(r=>r.opp===m.b))return m.venue;}return null;}
+function computeTravelInfo(fromVenue,toVenue){
+  const from=venueInfo(fromVenue),to=venueInfo(toVenue);
+  if(!from||!to)return null;
+  const miles=Math.round(haversineKm(from.lat,from.lon,to.lat,to.lon)*0.621371);
+  const tzEast=Math.max(0,from.tz-to.tz);
+  const burden=miles+tzEast*200;
+  const penalty=Math.min(20,(burden/1000)*10);
+  return{miles,tzEast,burden,penalty,fromVenue,toVenue};
 }
 
 const C={bg:"#faf7f5",panel:"#e8f4f1",panelAlt:"#F3FFF9",line:"rgba(161,228,219,0.5)",lineStrong:"#A1E4DB",text:"#0a3d3a",dim:"#506c67",green:"#25A497",blue:"#1C5753",coral:"#ff6b47",amber:"#b45309",purple:"#7c3aed",pink:"#be185d",red:"#b91c1c"};
@@ -212,6 +248,7 @@ export default function ProgressivePredictor(){
     p.set("wf",cfg.wForm); p.set("wm",cfg.wMom); p.set("wd",cfg.wDSI);
     p.set("wc",cfg.wConv); p.set("ws",cfg.wSOS); p.set("we",cfg.wExp);
     p.set("k",cfg.shrink); p.set("hl",cfg.halflife);
+    p.set("tr",cfg.travel?"1":"0");
     window.history.replaceState(null,"","?"+p.toString());
   },[teamA,teamB,cfg]);
 
@@ -228,7 +265,17 @@ export default function ProgressivePredictor(){
   const [injGA,setInjGA]=useState(0);
   const set=(k,v)=>setCfg(c=>({...c,[k]:v}));
 
-  const result=useMemo(()=> teamA===teamB?null:predict(teamA,teamB,cfg,matchLog),[teamA,teamB,cfg,matchLog]);
+  const travelInfo=useMemo(()=>{
+    if(!cfg.travel)return{penA:0,penB:0,infoA:null,infoB:null};
+    const sched=getSchedInfo(teamA,teamB);
+    if(!sched)return{penA:0,penB:0,infoA:null,infoB:null};
+    const fromA=getTeamPrevVenue(teamA,matchLog),fromB=getTeamPrevVenue(teamB,matchLog);
+    const infoA=fromA?computeTravelInfo(fromA,sched.venue):null;
+    const infoB=fromB?computeTravelInfo(fromB,sched.venue):null;
+    return{penA:infoA?.penalty??0,penB:infoB?.penalty??0,infoA,infoB};
+  },[teamA,teamB,cfg.travel,matchLog]);
+
+  const result=useMemo(()=> teamA===teamB?null:predict(teamA,teamB,cfg,matchLog,travelInfo.penA,travelInfo.penB),[teamA,teamB,cfg,matchLog,travelInfo]);
 
   const injectResult=useCallback(()=>{
     if(injTeam===injOpp)return;
@@ -308,7 +355,10 @@ export default function ProgressivePredictor(){
               </div>
             </div>
 
-            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:"12px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+              <button onClick={()=>set("travel",!cfg.travel)} style={{background:cfg.travel?"rgba(255,107,71,0.1)":"transparent",color:cfg.travel?C.coral:C.dim,border:`1px solid ${cfg.travel?"rgba(255,107,71,0.4)":C.line}`,borderRadius:"8px",padding:"6px 14px",fontSize:"12px",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
+                ✈ Travel {cfg.travel?"ON":"OFF"}
+              </button>
               <button onClick={copyLink} style={{background:copied?"rgba(37,164,151,0.15)":"transparent",color:copied?C.green:C.dim,border:`1px solid ${copied?C.green:C.line}`,borderRadius:"8px",padding:"6px 14px",fontSize:"12px",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
                 {copied?"✓ Link copied":"🔗 Share prediction"}
               </button>
@@ -337,6 +387,35 @@ export default function ProgressivePredictor(){
                 <div style={{fontSize:"10px",color:C.dim}}>{cfg.knockout?"advances":"win"}</div>
               </div>
             </div>
+
+            {cfg.travel&&(travelInfo.infoA||travelInfo.infoB)&&(
+              <div style={{background:"rgba(255,107,71,0.05)",borderRadius:"12px",padding:"12px 16px",marginBottom:"14px",border:"1px solid rgba(255,107,71,0.2)"}}>
+                <div style={{fontSize:"10px",color:C.coral,fontWeight:700,letterSpacing:"1.5px",marginBottom:"8px"}}>TRAVEL ADJUSTMENT · ACTIVE</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:"6px",fontSize:"11px",alignItems:"start"}}>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontWeight:700,color:C.text,marginBottom:"2px"}}>{NAMES[teamA]}</div>
+                    {travelInfo.infoA?(
+                      <>
+                        <div style={{color:C.dim}}>{travelInfo.infoA.fromVenue.split(",")[0]} → {travelInfo.infoA.miles.toLocaleString()}mi</div>
+                        {travelInfo.infoA.tzEast>0&&<div style={{color:C.dim}}>{travelInfo.infoA.tzEast}hr east shift</div>}
+                        <div style={{color:travelInfo.penA>0?C.coral:C.dim,fontWeight:700,marginTop:"2px"}}>−{travelInfo.penA.toFixed(1)} pts</div>
+                      </>
+                    ):<div style={{color:C.dim}}>no data</div>}
+                  </div>
+                  <div style={{textAlign:"center",color:C.dim,paddingTop:"14px",fontSize:"10px"}}>vs</div>
+                  <div style={{textAlign:"left"}}>
+                    <div style={{fontWeight:700,color:C.text,marginBottom:"2px"}}>{NAMES[teamB]}</div>
+                    {travelInfo.infoB?(
+                      <>
+                        <div style={{color:C.dim}}>{travelInfo.infoB.fromVenue.split(",")[0]} → {travelInfo.infoB.miles.toLocaleString()}mi</div>
+                        {travelInfo.infoB.tzEast>0&&<div style={{color:C.dim}}>{travelInfo.infoB.tzEast}hr east shift</div>}
+                        <div style={{color:travelInfo.penB>0?C.coral:C.dim,fontWeight:700,marginTop:"2px"}}>−{travelInfo.penB.toFixed(1)} pts</div>
+                      </>
+                    ):<div style={{color:C.dim}}>no data</div>}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{background:C.panel,borderRadius:"12px",padding:"16px",border:`1px solid ${C.line}`}}>
               <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"14px"}}>INDEX COMPARISON (recency-weighted)</div>
@@ -408,6 +487,17 @@ export default function ProgressivePredictor(){
             </div>
             <div style={{marginTop:"12px",padding:"12px",background:"rgba(10,61,58,0.05)",border:"1px solid rgba(161,228,219,0.5)",borderRadius:"10px",fontSize:"12px",color:C.blue,lineHeight:1.6}}>
               <strong style={{color:C.text}}>Why this is progressive:</strong> as GP rises, prior shrinkage GP/(GP+k) shifts weight from pre-tournament Elo toward earned-Elo and form indices. By the knockout stage (GP≥3), the model is ~70%+ data-driven. The Poisson/Elo ensemble weight also scales with data maturity.
+            </div>
+            <div style={{marginTop:"12px",background:C.panel,borderRadius:"12px",padding:"18px",border:`1px solid ${C.line}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
+                <div style={{fontSize:"11px",color:C.dim,fontWeight:700,letterSpacing:"1px"}}>TRAVEL FATIGUE</div>
+                <button onClick={()=>set("travel",!cfg.travel)} style={{background:cfg.travel?"rgba(255,107,71,0.1)":"transparent",color:cfg.travel?C.coral:C.dim,border:`1px solid ${cfg.travel?"rgba(255,107,71,0.4)":C.line}`,borderRadius:"8px",padding:"4px 12px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>
+                  {cfg.travel?"ON":"OFF"}
+                </button>
+              </div>
+              <div style={{fontSize:"11px",color:C.dim,lineHeight:1.6}}>
+                When enabled, applies a penalty to teams based on their travel distance and time-zone east-shift from their previous match city. Burden = miles + (TZ east hours × 200). Penalty = min(20, burden ÷ 1000 × 10) score points, capped at 20 pts. Also reduces expected goals (λ) proportionally. Only active for scheduled matches with known prior venues.
+              </div>
             </div>
           </div>
         )}
