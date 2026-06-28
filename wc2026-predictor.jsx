@@ -36,11 +36,35 @@ function resolveWinner(mn, koMatches) {
   return inj.gf > inj.ga ? inj.team : inj.opp;
 }
 
+// Returns the losing team abbr of a match, or null if not yet known.
+function resolveLoser(mn, koMatches) {
+  const entry = KO_ALL[mn];
+  if (!entry) return null;
+  if (entry.a && entry.b) {
+    const inj = koMatches.find(d => d.round === "R32" && ((d.team === entry.a && d.opp === entry.b) || (d.team === entry.b && d.opp === entry.a)));
+    if (!inj) return null;
+    return inj.gf > inj.ga ? inj.opp : inj.team;
+  }
+  const teamA = resolveWinner(entry.wA, koMatches);
+  const teamB = resolveWinner(entry.wB, koMatches);
+  if (!teamA || !teamB) return null;
+  const round = ROUND_FOR_MN(mn);
+  const inj = koMatches.find(d => d.round === round && ((d.team === teamA && d.opp === teamB) || (d.team === teamB && d.opp === teamA)));
+  if (!inj) return null;
+  return inj.gf > inj.ga ? inj.opp : inj.team;
+}
+
 // Returns {a, b} team abbrs for a match number's two participants, or null if either is unresolved.
 function resolveMatchTeams(mn, koMatches) {
   const entry = KO_ALL[mn];
   if (!entry) return null;
   if (entry.a && entry.b) return { a: entry.a, b: entry.b };
+  if (entry.lA !== undefined) {
+    const a = resolveLoser(entry.lA, koMatches);
+    const b = resolveLoser(entry.lB, koMatches);
+    if (!a || !b) return null;
+    return { a, b };
+  }
   const a = resolveWinner(entry.wA, koMatches);
   const b = resolveWinner(entry.wB, koMatches);
   if (!a || !b) return null;
@@ -599,12 +623,16 @@ export default function ProgressivePredictor(){
             // Render a single KO match row (works for all rounds)
             const KoMatchRow=({entry})=>{
               // Resolve actual team abbrs (null if bracket not yet determined)
+              const isLoserBracket=entry.lA!==undefined;
               let tA=entry.a, tB=entry.b;
-              if(!tA){tA=resolveWinner(entry.wA,koMatches);}
-              if(!tB){tB=resolveWinner(entry.wB,koMatches);}
-              // Labels: team name if known, "W{mn}" if not
-              const labelA=tA?(FLAGS[tA]+" "+(NAMES[tA]||tA)):`W${entry.wA||entry.mn}`;
-              const labelB=tB?((NAMES[tB]||tB)+" "+FLAGS[tB]):`W${entry.wB||entry.mn}`;
+              if(!tA){tA=isLoserBracket?resolveLoser(entry.lA,koMatches):resolveWinner(entry.wA,koMatches);}
+              if(!tB){tB=isLoserBracket?resolveLoser(entry.lB,koMatches):resolveWinner(entry.wB,koMatches);}
+              const refA=isLoserBracket?entry.lA:entry.wA;
+              const refB=isLoserBracket?entry.lB:entry.wB;
+              const prefix=isLoserBracket?"L":"W";
+              // Labels: team name if known, "W/L{mn}" if not
+              const labelA=tA?(FLAGS[tA]+" "+(NAMES[tA]||tA)):`${prefix}${refA||entry.mn}`;
+              const labelB=tB?((NAMES[tB]||tB)+" "+FLAGS[tB]):`${prefix}${refB||entry.mn}`;
               // Find injected result (if both teams known)
               let res=null;
               if(tA&&tB){res=injForRound.find(r=>(r.team===tA&&r.opp===tB)||(r.team===tB&&r.opp===tA))||null;}

@@ -251,8 +251,10 @@ export const SF_SCHEDULE = [
 ];
 
 // ─── FINAL & THIRD PLACE ────────────────────────────────────────────────────
+// M103: lA/lB = losers of those SF matches (3rd place play-off)
+// M104: wA/wB = winners of those SF matches (Final)
 export const FINAL_SCHEDULE = [
-  {mn:103,date:"2026-07-19",wA:101,wB:102,thirdPlace:true,venue:"Hard Rock Stadium, Miami Gardens, FL"},
+  {mn:103,date:"2026-07-19",lA:101,lB:102,venue:"Hard Rock Stadium, Miami Gardens, FL"},
   {mn:104,date:"2026-07-20",wA:101,wB:102,venue:"MetLife Stadium, East Rutherford, NJ"},
 ];
 
