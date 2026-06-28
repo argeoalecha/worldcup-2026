@@ -1,6 +1,51 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import HayahaiLogo from "./HayahaiLogo.jsx";
-import { PRE_ELO, ELO_EXACT, BASE_MATCH_LOG, GROUP_STANDINGS, NAMES, FLAGS, GROUPS, MATCH_SCHEDULE } from "./src/data/results.js";
+import { PRE_ELO, ELO_EXACT, BASE_MATCH_LOG, GROUP_STANDINGS, NAMES, FLAGS, GROUPS, MATCH_SCHEDULE, R32_SCHEDULE, R16_SCHEDULE, QF_SCHEDULE, SF_SCHEDULE, FINAL_SCHEDULE } from "./src/data/results.js";
+
+// Flat lookup: matchNum → schedule entry (covers R32 through Final).
+const KO_ALL = {};
+[...R32_SCHEDULE, ...R16_SCHEDULE, ...QF_SCHEDULE, ...SF_SCHEDULE, ...FINAL_SCHEDULE]
+  .forEach(e => { KO_ALL[e.mn] = e; });
+
+const ROUND_FOR_MN = mn => {
+  if (mn <= 88) return "R32";
+  if (mn <= 96) return "R16";
+  if (mn <= 100) return "QF";
+  if (mn <= 102) return "SF";
+  return "Final";
+};
+
+// Returns the winning team abbr of a given match number, or null if not yet known.
+function resolveWinner(mn, koMatches) {
+  const entry = KO_ALL[mn];
+  if (!entry) return null;
+  if (entry.a && entry.b) {
+    // R32: actual teams are known
+    const round = "R32";
+    const inj = koMatches.find(d => d.round === round && ((d.team === entry.a && d.opp === entry.b) || (d.team === entry.b && d.opp === entry.a)));
+    if (!inj) return null;
+    return inj.gf > inj.ga ? inj.team : inj.opp;
+  }
+  // R16+: resolve both sides recursively
+  const teamA = resolveWinner(entry.wA, koMatches);
+  const teamB = resolveWinner(entry.wB, koMatches);
+  if (!teamA || !teamB) return null;
+  const round = ROUND_FOR_MN(mn);
+  const inj = koMatches.find(d => d.round === round && ((d.team === teamA && d.opp === teamB) || (d.team === teamB && d.opp === teamA)));
+  if (!inj) return null;
+  return inj.gf > inj.ga ? inj.team : inj.opp;
+}
+
+// Returns {a, b} team abbrs for a match number's two participants, or null if either is unresolved.
+function resolveMatchTeams(mn, koMatches) {
+  const entry = KO_ALL[mn];
+  if (!entry) return null;
+  if (entry.a && entry.b) return { a: entry.a, b: entry.b };
+  const a = resolveWinner(entry.wA, koMatches);
+  const b = resolveWinner(entry.wB, koMatches);
+  if (!a || !b) return null;
+  return { a, b };
+}
 
 // Persist only user-injected deltas, never the merged log — so every deploy's
 // updated BASE_MATCH_LOG always reaches returning visitors. The match log is
@@ -54,7 +99,20 @@ Object.entries(GROUPS).forEach(([g,ts])=>ts.forEach(t=>{TEAM_GROUP[t]=g;}));
 
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const fmtDate=d=>{const[,m,day]=d.split("-");return `${MONTHS[+m-1]} ${+day}`;};
-function getSchedInfo(a,b){return MATCH_SCHEDULE.find(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a))||null;}
+function getSchedInfo(a,b,koMatches){
+  const gs=MATCH_SCHEDULE.find(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a));
+  if(gs)return gs;
+  const r32=R32_SCHEDULE.find(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a));
+  if(r32)return r32;
+  if(!koMatches)return null;
+  for(const sched of[R16_SCHEDULE,QF_SCHEDULE,SF_SCHEDULE,FINAL_SCHEDULE]){
+    for(const e of sched){
+      const t=resolveMatchTeams(e.mn,koMatches);
+      if(t&&((t.a===a&&t.b===b)||(t.a===b&&t.b===a)))return e;
+    }
+  }
+  return null;
+}
 function hasBaseResult(a,b){return (BASE_MATCH_LOG[a]||[]).some(m=>m.opp===b);}
 const SCHEDULED_UNPLAYED=MATCH_SCHEDULE.filter(m=>!hasBaseResult(m.a,m.b));
 
@@ -201,7 +259,30 @@ const VENUE_INFO = {
 };
 function venueInfo(str){for(const[k,v]of Object.entries(VENUE_INFO))if(str.includes(k))return v;return null;}
 function haversineKm(la1,lo1,la2,lo2){const R=6371,r=d=>d*Math.PI/180,dLa=r(la2-la1),dLo=r(lo2-lo1),a=Math.sin(dLa/2)**2+Math.cos(r(la1))*Math.cos(r(la2))*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
-function getTeamPrevVenue(abbr,matchLog){for(let i=MATCH_SCHEDULE.length-1;i>=0;i--){const m=MATCH_SCHEDULE[i];if(m.a===abbr||m.b===abbr)if((matchLog[m.a]||[]).some(r=>r.opp===m.b))return m.venue;}return null;}
+const KO_SCHED_BY_ROUND = {R32:R32_SCHEDULE,R16:R16_SCHEDULE,QF:QF_SCHEDULE,SF:SF_SCHEDULE,Final:FINAL_SCHEDULE};
+function getKoVenue(round, team, opp, koMatches) {
+  const sched = KO_SCHED_BY_ROUND[round] || [];
+  for(const e of sched){
+    let a=e.a,b=e.b;
+    if(!a||!b){const t=resolveMatchTeams(e.mn,koMatches);if(t){a=t.a;b=t.b;}}
+    if((a===team&&b===opp)||(a===opp&&b===team))return e.venue;
+  }
+  return null;
+}
+function getTeamPrevVenue(abbr,matchLog,koMatches){
+  // Walk KO rounds most-recent first
+  for(const round of ["Final","SF","QF","R16","R32"]){
+    const km=(koMatches||[]).find(m=>m.round===round&&(m.team===abbr||m.opp===abbr));
+    if(km){
+      const v=getKoVenue(round,km.team,km.opp,koMatches);
+      if(v)return v;
+      break;
+    }
+  }
+  // Fall back to most recent played group-stage match
+  for(let i=MATCH_SCHEDULE.length-1;i>=0;i--){const m=MATCH_SCHEDULE[i];if(m.a===abbr||m.b===abbr)if((matchLog[m.a]||[]).some(r=>r.opp===m.b))return m.venue;}
+  return null;
+}
 function computeTravelInfo(fromVenue,toVenue){
   const from=venueInfo(fromVenue),to=venueInfo(toVenue);
   if(!from||!to)return null;
@@ -239,6 +320,7 @@ export default function ProgressivePredictor(){
   const [cfg,setCfg]=useState(initCfg);
   const [copied,setCopied]=useState(false);
   const [openGroup,setOpenGroup]=useState(null);
+  const [koSchedRound,setKoSchedRound]=useState("R32");
   useEffect(()=>{ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(injects)); }catch{} },[injects]);
 
   useEffect(()=>{
@@ -267,13 +349,13 @@ export default function ProgressivePredictor(){
 
   const travelInfo=useMemo(()=>{
     if(!cfg.travel)return{penA:0,penB:0,infoA:null,infoB:null};
-    const sched=getSchedInfo(teamA,teamB);
+    const sched=getSchedInfo(teamA,teamB,koMatches);
     if(!sched)return{penA:0,penB:0,infoA:null,infoB:null};
-    const fromA=getTeamPrevVenue(teamA,matchLog),fromB=getTeamPrevVenue(teamB,matchLog);
+    const fromA=getTeamPrevVenue(teamA,matchLog,koMatches),fromB=getTeamPrevVenue(teamB,matchLog,koMatches);
     const infoA=fromA?computeTravelInfo(fromA,sched.venue):null;
     const infoB=fromB?computeTravelInfo(fromB,sched.venue):null;
     return{penA:infoA?.penalty??0,penB:infoB?.penalty??0,infoA,infoB};
-  },[teamA,teamB,cfg.travel,matchLog]);
+  },[teamA,teamB,cfg.travel,matchLog,koMatches]);
 
   const result=useMemo(()=> teamA===teamB?null:predict(teamA,teamB,cfg,matchLog,travelInfo.penA,travelInfo.penB),[teamA,teamB,cfg,matchLog,travelInfo]);
 
@@ -503,6 +585,81 @@ export default function ProgressivePredictor(){
         )}
 
         {tab==="schedule"&&(()=>{
+          const KO_ROUNDS=[
+            {id:"R32",label:"Round of 32",sched:R32_SCHEDULE},
+            {id:"R16",label:"Round of 16",sched:R16_SCHEDULE},
+            {id:"QF",label:"Quarter-Finals",sched:QF_SCHEDULE},
+            {id:"SF",label:"Semi-Finals",sched:SF_SCHEDULE},
+            {id:"Final",label:"Final",sched:FINAL_SCHEDULE},
+          ];
+          if(cfg.knockout){
+            const curRound=KO_ROUNDS.find(r=>r.id===koSchedRound)||KO_ROUNDS[0];
+            const injForRound=koMatches.filter(m=>m.round===koSchedRound);
+
+            // Render a single KO match row (works for all rounds)
+            const KoMatchRow=({entry})=>{
+              // Resolve actual team abbrs (null if bracket not yet determined)
+              let tA=entry.a, tB=entry.b;
+              if(!tA){tA=resolveWinner(entry.wA,koMatches);}
+              if(!tB){tB=resolveWinner(entry.wB,koMatches);}
+              // Labels: team name if known, "W{mn}" if not
+              const labelA=tA?(FLAGS[tA]+" "+(NAMES[tA]||tA)):`W${entry.wA||entry.mn}`;
+              const labelB=tB?((NAMES[tB]||tB)+" "+FLAGS[tB]):`W${entry.wB||entry.mn}`;
+              // Find injected result (if both teams known)
+              let res=null;
+              if(tA&&tB){res=injForRound.find(r=>(r.team===tA&&r.opp===tB)||(r.team===tB&&r.opp===tA))||null;}
+              const gf=res?(res.team===tA?res.gf:res.ga):null;
+              const ga=res?(res.team===tA?res.ga:res.gf):null;
+              const bothKnown=!!(tA&&tB);
+              return (
+                <div style={{background:C.panel,borderRadius:"10px",padding:"10px 14px",border:`1px solid ${res?C.lineStrong:C.line}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
+                  <div style={{flex:1,textAlign:"right"}}>
+                    <div style={{fontSize:"12px",fontWeight:tA?600:400,color:tA?C.text:C.dim}}>{labelA}</div>
+                    {!tA&&(()=>{const r=R32_SCHEDULE.find(x=>x.mn===entry.wA);return r?<div style={{fontSize:"9px",color:C.dim}}>{r.a}/{r.b}</div>:null;})()}
+                  </div>
+                  <div style={{textAlign:"center",minWidth:"106px"}}>
+                    <div style={{fontSize:"9px",color:C.dim,marginBottom:"2px"}}>{fmtDate(entry.date)} · M{entry.mn}</div>
+                    {res!=null?(
+                      <div style={{fontSize:"14px",fontWeight:800,color:gf>ga?C.green:gf<ga?C.red:C.amber}}>{gf}–{ga}</div>
+                    ):(
+                      <div>
+                        <div style={{fontSize:"9px",color:C.dim,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100px"}}>{entry.venue.split(",")[0]}</div>
+                        {bothKnown?(
+                          <button onClick={()=>{setTab("inject");setInjTeam(tA);setInjOpp(tB);setInjRound(koSchedRound);}} style={{background:"transparent",color:C.coral,border:`1px solid ${C.coral}`,borderRadius:"4px",padding:"1px 7px",fontSize:"9px",fontWeight:700,cursor:"pointer"}}>+ result</button>
+                        ):(
+                          <div style={{fontSize:"9px",color:C.dim,fontStyle:"italic"}}>awaiting bracket</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:"12px",fontWeight:tB?600:400,color:tB?C.text:C.dim}}>{labelB}</div>
+                    {!tB&&(()=>{const r=R32_SCHEDULE.find(x=>x.mn===entry.wB);return r?<div style={{fontSize:"9px",color:C.dim}}>{r.a}/{r.b}</div>:null;})()}
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div>
+                <div style={{fontSize:"12px",color:C.coral,fontWeight:700,letterSpacing:"2px",marginBottom:"14px"}}>MATCH SCHEDULE · KNOCKOUT STAGE</div>
+                <div style={{display:"flex",gap:"6px",marginBottom:"16px",flexWrap:"wrap"}}>
+                  {KO_ROUNDS.map(({id,label})=>{
+                    const active=koSchedRound===id;
+                    return (
+                      <button key={id} onClick={()=>setKoSchedRound(id)} style={{padding:"6px 14px",background:active?C.coral:"transparent",color:active?"#fff":C.coral,border:`1px solid ${C.coral}`,borderRadius:"9999px",fontWeight:active?700:500,fontSize:"11px",cursor:"pointer",letterSpacing:"0.3px",transition:"all 0.15s"}}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+                  {curRound.sched.map((entry,i)=><KoMatchRow key={i} entry={entry}/>)}
+                </div>
+              </div>
+            );
+          }
+          // ── GROUP STAGE SCHEDULE ──
           const today=new Date().toISOString().slice(0,10);
           const todayMatches=MATCH_SCHEDULE.filter(m=>m.date===today);
           return (
@@ -608,30 +765,6 @@ export default function ProgressivePredictor(){
                 );
               })}
             </div>
-            <div style={{marginTop:"20px"}}>
-              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"12px"}}>KNOCKOUT STAGE</div>
-              {["R32","R16","QF","SF","Final"].map(round=>{
-                const rMatches=koMatches.filter(m=>m.round===round);
-                const label=round==="R32"?"Round of 32":round==="R16"?"Round of 16":round==="QF"?"Quarter-Finals":round==="SF"?"Semi-Finals":"Final";
-                return (
-                  <div key={round} style={{background:C.panel,borderRadius:"10px",padding:"12px",marginBottom:"8px",border:`1px solid ${C.line}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:rMatches.length?"8px":"0"}}>
-                      <span style={{fontSize:"11px",fontWeight:800,color:C.blue}}>{label}</span>
-                      <button onClick={()=>{setTab("inject");setInjRound(round);}} style={{background:"transparent",color:C.coral,border:`1px solid ${C.coral}`,borderRadius:"6px",padding:"2px 8px",fontSize:"10px",fontWeight:700,cursor:"pointer"}}>+ add result</button>
-                    </div>
-                    {rMatches.length===0?(
-                      <div style={{fontSize:"10px",color:C.dim,fontStyle:"italic"}}>No results yet.</div>
-                    ):rMatches.map((m,i)=>(
-                      <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"4px 0",borderBottom:i<rMatches.length-1?`1px solid ${C.line}`:"none"}}>
-                        <span style={{fontSize:"11px"}}>{FLAGS[m.a]} {NAMES[m.a]}</span>
-                        <span style={{fontSize:"12px",fontWeight:800,color:m.gf>m.ga?C.green:m.gf<m.ga?C.red:C.amber}}>{m.gf}–{m.ga}</span>
-                        <span style={{fontSize:"11px"}}>{NAMES[m.b]} {FLAGS[m.b]}</span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
           </div>
           );
         })()}
@@ -662,6 +795,8 @@ export default function ProgressivePredictor(){
                             <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"16px"}}>W</th>
                             <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"16px"}}>D</th>
                             <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"16px"}}>L</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"18px"}}>GF</th>
+                            <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"18px"}}>GA</th>
                             <th style={{textAlign:"center",fontWeight:600,paddingBottom:"4px",width:"24px"}}>GD</th>
                             <th style={{textAlign:"center",fontWeight:700,paddingBottom:"4px",width:"22px",color:C.text}}>Pts</th>
                           </tr>
@@ -682,6 +817,8 @@ export default function ProgressivePredictor(){
                                 <td style={{textAlign:"center",fontWeight:700,color:row.w>0?C.green:C.dim}}>{row.w}</td>
                                 <td style={{textAlign:"center",color:C.dim}}>{row.d}</td>
                                 <td style={{textAlign:"center",color:row.l>0?C.red:C.dim}}>{row.l}</td>
+                                <td style={{textAlign:"center",color:C.dim}}>{row.gf}</td>
+                                <td style={{textAlign:"center",color:C.dim}}>{row.ga}</td>
                                 <td style={{textAlign:"center",color:gd>0?C.green:gd<0?C.red:C.dim}}>{gd>0?"+":""}{gd}</td>
                                 <td style={{textAlign:"center",fontWeight:800,color:isQ?C.green:C.text}}>{row.pts}</td>
                               </tr>

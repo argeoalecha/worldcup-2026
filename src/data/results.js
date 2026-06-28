@@ -64,24 +64,24 @@ export const BASE_MATCH_LOG = {
   NOR:[{opp:"IRQ",gf:4,ga:1},{opp:"SEN",gf:3,ga:2},{opp:"FRA",gf:1,ga:4}],
   SEN:[{opp:"FRA",gf:1,ga:3},{opp:"NOR",gf:2,ga:3},{opp:"IRQ",gf:5,ga:0}],
   IRQ:[{opp:"NOR",gf:1,ga:4},{opp:"FRA",gf:0,ga:3},{opp:"SEN",gf:0,ga:5}],
-  // Group J (MD1 + MD2 — validated vs ESPN 22 Jun 2026)
-  ARG:[{opp:"DZA",gf:3,ga:0},{opp:"AUT",gf:2,ga:0}],
-  AUT:[{opp:"JOR",gf:3,ga:1},{opp:"ARG",gf:0,ga:2}],
-  DZA:[{opp:"ARG",gf:0,ga:3},{opp:"JOR",gf:2,ga:1}],
-  JOR:[{opp:"AUT",gf:1,ga:3},{opp:"DZA",gf:1,ga:2}],
-  // Group K (MD1 + MD2)
-  COL:[{opp:"UZB",gf:3,ga:1},{opp:"COD",gf:1,ga:0}],
-  COD:[{opp:"POR",gf:1,ga:1},{opp:"COL",gf:0,ga:1}],
-  POR:[{opp:"COD",gf:1,ga:1},{opp:"UZB",gf:5,ga:0}],
-  UZB:[{opp:"COL",gf:1,ga:3},{opp:"POR",gf:0,ga:5}],
-  // Group L (MD1 + MD2)
-  ENG:[{opp:"CRO",gf:4,ga:2},{opp:"GHA",gf:0,ga:0}],
-  GHA:[{opp:"PAN",gf:1,ga:0},{opp:"ENG",gf:0,ga:0}],
-  CRO:[{opp:"ENG",gf:2,ga:4},{opp:"PAN",gf:1,ga:0}],
-  PAN:[{opp:"GHA",gf:0,ga:1},{opp:"CRO",gf:0,ga:1}],
+  // Group J
+  ARG:[{opp:"DZA",gf:3,ga:0},{opp:"AUT",gf:2,ga:0},{opp:"JOR",gf:3,ga:1}],
+  AUT:[{opp:"JOR",gf:3,ga:1},{opp:"ARG",gf:0,ga:2},{opp:"DZA",gf:3,ga:3}],
+  DZA:[{opp:"ARG",gf:0,ga:3},{opp:"JOR",gf:2,ga:1},{opp:"AUT",gf:3,ga:3}],
+  JOR:[{opp:"AUT",gf:1,ga:3},{opp:"DZA",gf:1,ga:2},{opp:"ARG",gf:1,ga:3}],
+  // Group K
+  COL:[{opp:"UZB",gf:3,ga:1},{opp:"COD",gf:1,ga:0},{opp:"POR",gf:0,ga:0}],
+  COD:[{opp:"POR",gf:1,ga:1},{opp:"COL",gf:0,ga:1},{opp:"UZB",gf:3,ga:1}],
+  POR:[{opp:"COD",gf:1,ga:1},{opp:"UZB",gf:5,ga:0},{opp:"COL",gf:0,ga:0}],
+  UZB:[{opp:"COL",gf:1,ga:3},{opp:"POR",gf:0,ga:5},{opp:"COD",gf:1,ga:3}],
+  // Group L
+  ENG:[{opp:"CRO",gf:4,ga:2},{opp:"GHA",gf:0,ga:0},{opp:"PAN",gf:2,ga:0}],
+  GHA:[{opp:"PAN",gf:1,ga:0},{opp:"ENG",gf:0,ga:0},{opp:"CRO",gf:1,ga:2}],
+  CRO:[{opp:"ENG",gf:2,ga:4},{opp:"PAN",gf:1,ga:0},{opp:"GHA",gf:2,ga:1}],
+  PAN:[{opp:"GHA",gf:0,ga:1},{opp:"CRO",gf:0,ga:1},{opp:"ENG",gf:0,ga:2}],
 };
 
-// ─── GROUP STANDINGS (source: CBS Sports, updated 2026-06-24) ───────────────
+// ─── GROUP STANDINGS (source: ESPN, updated 2026-06-28 — all 12 groups final) ─
 // Edit in-place after each matchday, then rebuild + deploy.
 // Fields per row: t=team abbr, gp=played, w/d/l, gf/ga, pts
 export const GROUP_STANDINGS = {
@@ -122,40 +122,40 @@ export const GROUP_STANDINGS = {
     {t:"TUN",gp:3,w:0,d:0,l:3,gf:2,ga:12,pts:0},
   ],
   G:[
-    {t:"EGY",gp:2,w:1,d:1,l:0,gf:4,ga:2,pts:4},
-    {t:"IRN",gp:2,w:0,d:2,l:0,gf:2,ga:2,pts:2},
-    {t:"BEL",gp:2,w:0,d:2,l:0,gf:1,ga:1,pts:2},
-    {t:"NZL",gp:2,w:0,d:1,l:1,gf:3,ga:5,pts:1},
+    {t:"BEL",gp:3,w:1,d:2,l:0,gf:6,ga:2,pts:5},
+    {t:"EGY",gp:3,w:1,d:2,l:0,gf:5,ga:3,pts:5},
+    {t:"IRN",gp:3,w:0,d:3,l:0,gf:3,ga:3,pts:3},
+    {t:"NZL",gp:3,w:0,d:1,l:2,gf:4,ga:10,pts:1},
   ],
   H:[
-    {t:"ESP",gp:2,w:1,d:1,l:0,gf:4,ga:0,pts:4},
-    {t:"URU",gp:2,w:0,d:2,l:0,gf:3,ga:3,pts:2},
-    {t:"CPV",gp:2,w:0,d:2,l:0,gf:2,ga:2,pts:2},
-    {t:"KSA",gp:2,w:0,d:1,l:1,gf:1,ga:5,pts:1},
+    {t:"ESP",gp:3,w:2,d:1,l:0,gf:5,ga:0,pts:7},
+    {t:"CPV",gp:3,w:0,d:3,l:0,gf:2,ga:2,pts:3},
+    {t:"URU",gp:3,w:0,d:2,l:1,gf:3,ga:4,pts:2},
+    {t:"KSA",gp:3,w:0,d:2,l:1,gf:1,ga:5,pts:2},
   ],
   I:[
-    {t:"FRA",gp:2,w:2,d:0,l:0,gf:6,ga:1,pts:6},
-    {t:"NOR",gp:2,w:2,d:0,l:0,gf:7,ga:3,pts:6},
-    {t:"SEN",gp:2,w:0,d:0,l:2,gf:3,ga:6,pts:0},
-    {t:"IRQ",gp:2,w:0,d:0,l:2,gf:1,ga:7,pts:0},
+    {t:"FRA",gp:3,w:3,d:0,l:0,gf:10,ga:2,pts:9},
+    {t:"NOR",gp:3,w:2,d:0,l:1,gf:8,ga:7,pts:6},
+    {t:"SEN",gp:3,w:1,d:0,l:2,gf:8,ga:6,pts:3},
+    {t:"IRQ",gp:3,w:0,d:0,l:3,gf:1,ga:12,pts:0},
   ],
   J:[
-    {t:"ARG",gp:2,w:2,d:0,l:0,gf:5,ga:0,pts:6},
-    {t:"AUT",gp:2,w:1,d:0,l:1,gf:3,ga:3,pts:3},
-    {t:"DZA",gp:2,w:1,d:0,l:1,gf:2,ga:4,pts:3},
-    {t:"JOR",gp:2,w:0,d:0,l:2,gf:2,ga:5,pts:0},
+    {t:"ARG",gp:3,w:3,d:0,l:0,gf:8,ga:1,pts:9},
+    {t:"AUT",gp:3,w:1,d:1,l:1,gf:6,ga:6,pts:4},
+    {t:"DZA",gp:3,w:1,d:1,l:1,gf:5,ga:7,pts:4},
+    {t:"JOR",gp:3,w:0,d:0,l:3,gf:3,ga:9,pts:0},
   ],
   K:[
-    {t:"POR",gp:2,w:1,d:1,l:0,gf:6,ga:1,pts:4},
-    {t:"COL",gp:2,w:2,d:0,l:0,gf:4,ga:1,pts:6},
-    {t:"COD",gp:2,w:0,d:1,l:1,gf:1,ga:2,pts:1},
-    {t:"UZB",gp:2,w:0,d:0,l:2,gf:1,ga:8,pts:0},
+    {t:"COL",gp:3,w:2,d:1,l:0,gf:4,ga:1,pts:7},
+    {t:"POR",gp:3,w:1,d:2,l:0,gf:6,ga:1,pts:5},
+    {t:"COD",gp:3,w:1,d:1,l:1,gf:4,ga:3,pts:4},
+    {t:"UZB",gp:3,w:0,d:0,l:3,gf:2,ga:11,pts:0},
   ],
   L:[
-    {t:"ENG",gp:2,w:1,d:1,l:0,gf:4,ga:2,pts:4},
-    {t:"GHA",gp:2,w:1,d:1,l:0,gf:1,ga:0,pts:4},
-    {t:"PAN",gp:2,w:0,d:0,l:2,gf:0,ga:2,pts:0},
-    {t:"CRO",gp:2,w:1,d:0,l:1,gf:3,ga:4,pts:3},
+    {t:"ENG",gp:3,w:2,d:1,l:0,gf:6,ga:2,pts:7},
+    {t:"CRO",gp:3,w:2,d:0,l:1,gf:5,ga:5,pts:6},
+    {t:"GHA",gp:3,w:1,d:1,l:1,gf:2,ga:2,pts:4},
+    {t:"PAN",gp:3,w:0,d:0,l:3,gf:0,ga:4,pts:0},
   ],
 };
 
@@ -188,6 +188,73 @@ export const GROUPS = {
   G:["EGY","IRN","BEL","NZL"],H:["ESP","URU","CPV","KSA"],I:["FRA","NOR","SEN","IRQ"],
   J:["ARG","AUT","DZA","JOR"],K:["COL","COD","POR","UZB"],L:["ENG","GHA","CRO","PAN"],
 };
+
+// ─── ROUND OF 32 SCHEDULE ───────────────────────────────────────────────────
+// mn = FIFA bracket match number (73-88), assigned by ascending FIFA match ID.
+// ENG/COD=73, GER/PAR=74, CIV/NOR=75, AUS/EGY=76, BRA/JPN=77, COL/GHA=78,
+// RSA/CAN=79, ESP/AUT=80, MEX/ECU=81, ARG/CPV=82, NED/MAR=83, FRA/SWE=84,
+// USA/BIH=85, BEL/SEN=86, POR/CRO=87, SUI/DZA=88
+export const R32_SCHEDULE = [
+  // Jun 29
+  {mn:79,date:"2026-06-29",a:"RSA",b:"CAN",venue:"SoFi Stadium, Inglewood, CA"},
+  // Jun 30
+  {mn:77,date:"2026-06-30",a:"BRA",b:"JPN",venue:"NRG Stadium, Houston, TX"},
+  {mn:74,date:"2026-06-30",a:"GER",b:"PAR",venue:"Gillette Stadium, Foxborough, MA"},
+  {mn:83,date:"2026-06-30",a:"NED",b:"MAR",venue:"Estadio BBVA, Guadalupe, Mexico"},
+  // Jul 1
+  {mn:75,date:"2026-07-01",a:"CIV",b:"NOR",venue:"AT&T Stadium, Arlington, TX"},
+  {mn:84,date:"2026-07-01",a:"FRA",b:"SWE",venue:"MetLife Stadium, East Rutherford, NJ"},
+  {mn:81,date:"2026-07-01",a:"MEX",b:"ECU",venue:"Estadio Banorte, Mexico City, Mexico"},
+  // Jul 2
+  {mn:73,date:"2026-07-02",a:"ENG",b:"COD",venue:"Mercedes-Benz Stadium, Atlanta, GA"},
+  {mn:86,date:"2026-07-02",a:"BEL",b:"SEN",venue:"Lumen Field, Seattle, WA"},
+  {mn:85,date:"2026-07-02",a:"USA",b:"BIH",venue:"Levi's Stadium, Santa Clara, CA"},
+  // Jul 3
+  {mn:80,date:"2026-07-03",a:"ESP",b:"AUT",venue:"SoFi Stadium, Inglewood, CA"},
+  {mn:87,date:"2026-07-03",a:"POR",b:"CRO",venue:"BMO Field, Toronto, Canada"},
+  {mn:88,date:"2026-07-03",a:"SUI",b:"DZA",venue:"BC Place, Vancouver, Canada"},
+  // Jul 4
+  {mn:76,date:"2026-07-04",a:"AUS",b:"EGY",venue:"AT&T Stadium, Arlington, TX"},
+  {mn:82,date:"2026-07-04",a:"ARG",b:"CPV",venue:"Hard Rock Stadium, Miami Gardens, FL"},
+  {mn:78,date:"2026-07-04",a:"COL",b:"GHA",venue:"GEHA Field at Arrowhead Stadium, Kansas City, MO"},
+];
+
+// ─── ROUND OF 16 SCHEDULE ───────────────────────────────────────────────────
+// wA/wB = match numbers of R32 matches whose winners play here.
+export const R16_SCHEDULE = [
+  // Jul 5
+  {mn:89,date:"2026-07-05",wA:73,wB:75,venue:"NRG Stadium, Houston, TX"},
+  {mn:90,date:"2026-07-05",wA:74,wB:77,venue:"Lincoln Financial Field, Philadelphia, PA"},
+  // Jul 6
+  {mn:91,date:"2026-07-06",wA:76,wB:78,venue:"MetLife Stadium, East Rutherford, NJ"},
+  {mn:92,date:"2026-07-06",wA:79,wB:80,venue:"Estadio Azteca, Mexico City, Mexico"},
+  // Jul 7
+  {mn:93,date:"2026-07-07",wA:83,wB:84,venue:"AT&T Stadium, Arlington, TX"},
+  {mn:94,date:"2026-07-07",wA:81,wB:82,venue:"Lumen Field, Seattle, WA"},
+  // Jul 8
+  {mn:95,date:"2026-07-08",wA:86,wB:88,venue:"Mercedes-Benz Stadium, Atlanta, GA"},
+  {mn:96,date:"2026-07-08",wA:85,wB:87,venue:"BC Place, Vancouver, Canada"},
+];
+
+// ─── QUARTER-FINAL SCHEDULE ─────────────────────────────────────────────────
+export const QF_SCHEDULE = [
+  {mn:97, date:"2026-07-10",wA:89,wB:90,venue:"Gillette Stadium, Foxborough, MA"},
+  {mn:98, date:"2026-07-11",wA:93,wB:94,venue:"SoFi Stadium, Inglewood, CA"},
+  {mn:99, date:"2026-07-12",wA:91,wB:92,venue:"Hard Rock Stadium, Miami Gardens, FL"},
+  {mn:100,date:"2026-07-12",wA:95,wB:96,venue:"GEHA Field at Arrowhead Stadium, Kansas City, MO"},
+];
+
+// ─── SEMI-FINAL SCHEDULE ────────────────────────────────────────────────────
+export const SF_SCHEDULE = [
+  {mn:101,date:"2026-07-15",wA:97, wB:98, venue:"AT&T Stadium, Arlington, TX"},
+  {mn:102,date:"2026-07-16",wA:99, wB:100,venue:"Mercedes-Benz Stadium, Atlanta, GA"},
+];
+
+// ─── FINAL & THIRD PLACE ────────────────────────────────────────────────────
+export const FINAL_SCHEDULE = [
+  {mn:103,date:"2026-07-19",wA:101,wB:102,thirdPlace:true,venue:"Hard Rock Stadium, Miami Gardens, FL"},
+  {mn:104,date:"2026-07-20",wA:101,wB:102,venue:"MetLife Stadium, East Rutherford, NJ"},
+];
 
 // ─── OFFICIAL MATCH SCHEDULE (ESPN, 22–27 Jun 2026) ─────────────────────────
 export const MATCH_SCHEDULE = [
