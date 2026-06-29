@@ -460,7 +460,7 @@ export default function ProgressivePredictor(){
       </div>
 
       <div className="wc-body" style={{padding:"22px 26px"}}>
-        {tab==="predict"&&result&&(
+        {tab==="predict"&&(
           <div>
             <div className="wc-predict-teams" style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:"10px",alignItems:"center",marginBottom:"18px"}}>
               <div>
@@ -478,6 +478,7 @@ export default function ProgressivePredictor(){
               </div>
             </div>
 
+            {result?(<>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
               <button onClick={()=>set("travel",!cfg.travel)} style={{background:cfg.travel?"rgba(255,107,71,0.1)":"transparent",color:cfg.travel?C.coral:C.dim,border:`1px solid ${cfg.travel?"rgba(255,107,71,0.4)":C.line}`,borderRadius:"8px",padding:"6px 14px",fontSize:"12px",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
                 ✈ Travel {cfg.travel?"ON":"OFF"}
@@ -557,6 +558,11 @@ export default function ProgressivePredictor(){
                 </div>
               ))}
             </div>
+            </>):(
+              <div style={{background:C.panel,borderRadius:"12px",padding:"20px",border:`1px solid ${C.line}`,textAlign:"center",color:C.dim,fontSize:"13px"}}>
+                Pick two different teams to see a prediction.
+              </div>
+            )}
           </div>
         )}
 
