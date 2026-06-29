@@ -259,6 +259,15 @@ export const FINAL_SCHEDULE = [
   {mn:104,date:"2026-07-20",wA:101,wB:102,venue:"MetLife Stadium, East Rutherford, NJ"},
 ];
 
+// ─── OFFICIAL KNOCKOUT RESULTS ──────────────────────────────────────────────
+// Baked-in knockout results (R32 onward) — the KO analog of BASE_MATCH_LOG.
+// Add a {round, team, opp, gf, ga} entry as each KO match is confirmed, then
+// build + deploy. The bracket auto-resolves winners into later rounds and Elo
+// updates from these. round ∈ "R32" | "R16" | "QF" | "SF" | "Final".
+export const BASE_KO_RESULTS = [
+  {round:"R32",team:"CAN",opp:"RSA",gf:1,ga:0},  // M73 — Canada 1-0 South Africa → CAN advances
+];
+
 // ─── OFFICIAL MATCH SCHEDULE (ESPN, 22–27 Jun 2026) ─────────────────────────
 export const MATCH_SCHEDULE = [
   // MD2 — Jun 22
