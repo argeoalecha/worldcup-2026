@@ -563,7 +563,7 @@ export default function ProgressivePredictor(){
         {tab==="indices"&&(
           <div>
             <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>LIVE POWER RANKING · recomputes from injected results</div>
-            <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Pre-tournament Elo: all 48 teams from eloratings.net (WC 2026 start). Match results validated vs CBS Sports.</div>
+            <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Pre-tournament Elo: all 48 teams from eloratings.net (WC 2026 start). Fixtures &amp; results: FIFA (official) and CBS Sports.</div>
             {ranking.map((t,i)=>(
               <div key={t.abbr} style={{background:C.panel,borderRadius:"10px",padding:"11px 14px",marginBottom:"7px",border:`1px solid ${i===0?C.green+"60":C.line}`}}>
                 <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"6px"}}>
@@ -844,7 +844,7 @@ export default function ProgressivePredictor(){
               {injSub==="group"&&(<>
               {/* ── Group Standings ── */}
               <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>GROUP STANDINGS · AS OF 2026-06-24</div>
-              <div style={{fontSize:"10px",color:C.dim,marginBottom:"14px"}}>Source: CBS Sports. Top 2 from each group advance; 8 best 3rd-place teams also qualify.</div>
+              <div style={{fontSize:"10px",color:C.dim,marginBottom:"14px"}}>Source: FIFA (official) and CBS Sports. Top 2 from each group advance; 8 best 3rd-place teams also qualify.</div>
               <div className="wc-schedule-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"24px"}}>
                 {Object.entries(GROUP_STANDINGS).map(([g, teams])=>{
                   const allDone=teams.every(r=>r.gp===3);
@@ -1066,8 +1066,8 @@ export default function ProgressivePredictor(){
       </div>
 
       <div style={{textAlign:"center",padding:"14px",borderTop:"1px solid rgba(161,228,219,0.4)",fontSize:"11px",color:C.dim,lineHeight:1.6}}>
-        Progressive Elo-Poisson · Bayesian prior decay · {cfg.knockout?"knockout":"group"} mode<br/>
-        Results validated vs CBS Sports group tables · Elo: all 48 teams from eloratings.net pre-tournament ratings (WC 2026 start)
+        Progressive Elo-Poisson · Dixon-Coles · travel-adjusted · Bayesian shrinkage · {cfg.knockout?"knockout":"group"} mode<br/>
+        Fixtures &amp; results: FIFA (official) and CBS Sports · Elo: all 48 teams from eloratings.net pre-tournament ratings (WC 2026 start)
       </div>
     </div>
   );

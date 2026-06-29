@@ -59,7 +59,7 @@ export const BASE_MATCH_LOG = {
   URU:[{opp:"KSA",gf:1,ga:1},{opp:"CPV",gf:2,ga:2},{opp:"ESP",gf:0,ga:1}],
   CPV:[{opp:"ESP",gf:0,ga:0},{opp:"URU",gf:2,ga:2},{opp:"KSA",gf:0,ga:0}],
   KSA:[{opp:"URU",gf:1,ga:1},{opp:"ESP",gf:0,ga:4},{opp:"CPV",gf:0,ga:0}],
-  // Group I (MD1 + MD2 — validated vs ESPN 22 Jun 2026)
+  // Group I (MD1 + MD2 — validated vs FIFA / CBS Sports 22 Jun 2026)
   FRA:[{opp:"SEN",gf:3,ga:1},{opp:"IRQ",gf:3,ga:0},{opp:"NOR",gf:4,ga:1}],
   NOR:[{opp:"IRQ",gf:4,ga:1},{opp:"SEN",gf:3,ga:2},{opp:"FRA",gf:1,ga:4}],
   SEN:[{opp:"FRA",gf:1,ga:3},{opp:"NOR",gf:2,ga:3},{opp:"IRQ",gf:5,ga:0}],
@@ -81,7 +81,7 @@ export const BASE_MATCH_LOG = {
   PAN:[{opp:"GHA",gf:0,ga:1},{opp:"CRO",gf:0,ga:1},{opp:"ENG",gf:0,ga:2}],
 };
 
-// ─── GROUP STANDINGS (source: ESPN, updated 2026-06-28 — all 12 groups final) ─
+// ─── GROUP STANDINGS (source: FIFA / CBS Sports, updated 2026-06-28 — all 12 groups final) ─
 // Edit in-place after each matchday, then rebuild + deploy.
 // Fields per row: t=team abbr, gp=played, w/d/l, gf/ga, pts
 export const GROUP_STANDINGS = {
@@ -268,7 +268,7 @@ export const BASE_KO_RESULTS = [
   {round:"R32",team:"CAN",opp:"RSA",gf:1,ga:0},  // M73 — Canada 1-0 South Africa → CAN advances
 ];
 
-// ─── OFFICIAL MATCH SCHEDULE (ESPN, 22–27 Jun 2026) ─────────────────────────
+// ─── OFFICIAL MATCH SCHEDULE (FIFA, 22–27 Jun 2026) ─────────────────────────
 export const MATCH_SCHEDULE = [
   // MD2 — Jun 22
   {date:"2026-06-22",g:"J",a:"ARG",b:"AUT",venue:"Arlington TX"},
