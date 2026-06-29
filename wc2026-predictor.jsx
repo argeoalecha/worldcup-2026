@@ -1,6 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import HayahaiLogo from "./HayahaiLogo.jsx";
 import { PRE_ELO, ELO_EXACT, BASE_MATCH_LOG, GROUP_STANDINGS, NAMES, FLAGS, GROUPS, MATCH_SCHEDULE, R32_SCHEDULE, R16_SCHEDULE, QF_SCHEDULE, SF_SCHEDULE, FINAL_SCHEDULE } from "./src/data/results.js";
+import bracketSvgRaw from "./bracket-prediction.svg?raw";
+
+// Predicted-bracket graphic, made responsive: CSS width overrides the SVG's
+// intrinsic width while the viewBox preserves aspect ratio across screens.
+const BRACKET_SVG = bracketSvgRaw.replace("<svg ", '<svg style="width:100%;height:auto;display:block" ');
 
 // Flat lookup: matchNum → schedule entry (covers R32 through Final).
 const KO_ALL = {};
@@ -434,9 +439,9 @@ export default function ProgressivePredictor(){
           </div>
         </div>
         <div style={{display:"flex",gap:"4px",marginTop:"14px",flexWrap:"wrap"}}>
-          {["predict","schedule","indices","tune","inject"].map(t=>(
+          {["predict","schedule","brackets","indices","tune","inject"].map(t=>(
             <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 16px",background:tab===t?"#25A497":"transparent",color:tab===t?"#0a3d3a":"#A1E4DB",border:"none",borderRadius:"8px 8px 0 0",fontWeight:tab===t?600:400,fontSize:"13px",cursor:"pointer",textTransform:"capitalize",fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif"}}>
-              {t==="predict"?"⚔️ Predict":t==="schedule"?"📅 Schedule":t==="indices"?"📈 Power Ranking":t==="tune"?"🎛️ Features Tuning":"📋 Official Results"}
+              {t==="predict"?"⚔️ Predict":t==="schedule"?"📅 Schedule":t==="brackets"?"🏆 Brackets":t==="indices"?"📈 Power Ranking":t==="tune"?"🎛️ Features Tuning":"📋 Official Results"}
             </button>
           ))}
         </div>
@@ -796,6 +801,19 @@ export default function ProgressivePredictor(){
           </div>
           );
         })()}
+
+        {tab==="brackets"&&(
+          <div>
+            <div style={{marginBottom:"12px"}}>
+              <div style={{fontSize:"16px",fontWeight:700,color:C.text,fontFamily:"'DM Serif Display',Georgia,serif"}}>Predicted Knockout Bracket</div>
+              <div style={{fontSize:"12px",color:C.dim,marginTop:"3px"}}>Model-projected winners R32 → Final, with travel fatigue applied. Winners shown in teal with their win probability. <span style={{color:C.coral,fontWeight:600}}>Scroll sideways to explore the full bracket.</span></div>
+            </div>
+            <div style={{overflowX:"auto",overflowY:"hidden",WebkitOverflowScrolling:"touch",border:`1px solid ${C.line}`,borderRadius:"12px",background:C.bg}}>
+              <div style={{minWidth:"900px"}} dangerouslySetInnerHTML={{__html:BRACKET_SVG}}/>
+            </div>
+            <div style={{fontSize:"10px",color:C.dim,marginTop:"10px"}}>Static projection generated from the group-stage results; it does not update with the sliders. Re-rendered each deploy.</div>
+          </div>
+        )}
 
         {tab==="inject"&&(()=>{
           const isUserInjected=(a,b)=>injects.some(d=>d.round==="group"&&((d.team===a&&d.opp===b)||(d.team===b&&d.opp===a)));
