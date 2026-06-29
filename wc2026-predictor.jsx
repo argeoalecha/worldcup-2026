@@ -1,6 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import HayahaiLogo from "./HayahaiLogo.jsx";
-import { PRE_ELO, ELO_EXACT, BASE_MATCH_LOG, GROUP_STANDINGS, NAMES, FLAGS, GROUPS, MATCH_SCHEDULE, R32_SCHEDULE, R16_SCHEDULE, QF_SCHEDULE, SF_SCHEDULE, FINAL_SCHEDULE } from "./src/data/results.js";
+import { PRE_ELO, ELO_EXACT, BASE_MATCH_LOG, GROUP_STANDINGS, NAMES, FLAGS, GROUPS, MATCH_SCHEDULE, R32_SCHEDULE, R16_SCHEDULE, QF_SCHEDULE, SF_SCHEDULE, FINAL_SCHEDULE, BASE_KO_RESULTS } from "./src/data/results.js";
+import bracketSvgRaw from "./bracket-prediction.svg?raw";
+
+// Predicted-bracket graphic, made responsive: CSS width overrides the SVG's
+// intrinsic width while the viewBox preserves aspect ratio across screens.
+const BRACKET_SVG = bracketSvgRaw.replace("<svg ", '<svg style="width:100%;height:auto;display:block" ');
 
 // Flat lookup: matchNum → schedule entry (covers R32 through Final).
 const KO_ALL = {};
@@ -95,6 +100,16 @@ function buildMatchLog(injects) {
     log[d.opp].push({ opp: d.team, gf: Number(d.ga), ga: Number(d.gf) });
   }
   return log;
+}
+
+// Merge baked-in official KO results with the user's localStorage injects.
+// Official results win: a user inject for the same KO match (round + team pair)
+// is dropped so it can't double-count. Group injects always pass through.
+const koKey = d => `${d.round}|${[d.team, d.opp].sort().join("-")}`;
+function mergeInjects(base, user) {
+  const baked = new Set(base.filter(d => d.round && d.round !== "group").map(koKey));
+  const extra = user.filter(d => !d.round || d.round === "group" || !baked.has(koKey(d)));
+  return [...base, ...extra];
 }
 
 const CFG_DEFAULTS = {knockout:true,shrink:1.5,halflife:1.5,wForm:1.0,wMom:1.0,wDSI:1.0,wConv:1.0,wSOS:1.0,wExp:1.0,travel:true};
@@ -334,8 +349,9 @@ function Slider({label,k,min,max,step,color,help,cfg,onSet}){
 
 export default function ProgressivePredictor(){
   const [injects,setInjects]=useState(loadInjects);
-  const matchLog=useMemo(()=>buildMatchLog(injects),[injects]);
-  const koMatches=useMemo(()=>injects.filter(d=>d.round&&d.round!=="group"),[injects]);
+  const allInjects=useMemo(()=>mergeInjects(BASE_KO_RESULTS,injects),[injects]);
+  const matchLog=useMemo(()=>buildMatchLog(allInjects),[allInjects]);
+  const koMatches=useMemo(()=>allInjects.filter(d=>d.round&&d.round!=="group"),[allInjects]);
   const allAbbrs=Object.keys(NAMES).filter(a=>matchLog[a]);
   const [tab,setTab]=useState("predict");
   const [{teamA:initA,teamB:initB,cfg:initCfg}]=useState(parseUrlParams);
@@ -365,6 +381,7 @@ export default function ProgressivePredictor(){
     });
   },[]);
   const [injRound,setInjRound]=useState("group");
+  const [injSub,setInjSub]=useState("group");
   const [injTeam,setInjTeam]=useState("ARG");
   const [injOpp,setInjOpp]=useState("AUT");
   const [injGF,setInjGF]=useState(1);
@@ -434,9 +451,9 @@ export default function ProgressivePredictor(){
           </div>
         </div>
         <div style={{display:"flex",gap:"4px",marginTop:"14px",flexWrap:"wrap"}}>
-          {["predict","schedule","indices","tune","inject"].map(t=>(
+          {["predict","schedule","brackets","indices","tune","inject"].map(t=>(
             <button key={t} onClick={()=>setTab(t)} style={{padding:"8px 16px",background:tab===t?"#25A497":"transparent",color:tab===t?"#0a3d3a":"#A1E4DB",border:"none",borderRadius:"8px 8px 0 0",fontWeight:tab===t?600:400,fontSize:"13px",cursor:"pointer",textTransform:"capitalize",fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif"}}>
-              {t==="predict"?"⚔️ Predict":t==="schedule"?"📅 Schedule":t==="indices"?"📈 Power Ranking":t==="tune"?"🎛️ Features Tuning":"📋 Official Results"}
+              {t==="predict"?"⚔️ Predict":t==="schedule"?"📅 Schedule":t==="brackets"?"🏆 Brackets":t==="indices"?"📈 Power Ranking":t==="tune"?"🎛️ Features Tuning":"📋 Official Results"}
             </button>
           ))}
         </div>
@@ -797,14 +814,34 @@ export default function ProgressivePredictor(){
           );
         })()}
 
+        {tab==="brackets"&&(
+          <div>
+            <div style={{marginBottom:"12px"}}>
+              <div style={{fontSize:"16px",fontWeight:700,color:C.text,fontFamily:"'DM Serif Display',Georgia,serif"}}>Predicted Knockout Bracket</div>
+              <div style={{fontSize:"12px",color:C.dim,marginTop:"3px"}}>Model-projected winners R32 → Final, with travel fatigue applied. Winners shown in teal with their win probability. <span style={{color:C.coral,fontWeight:600}}>Scroll sideways to explore the full bracket.</span></div>
+            </div>
+            <div style={{overflowX:"auto",overflowY:"hidden",WebkitOverflowScrolling:"touch",border:`1px solid ${C.line}`,borderRadius:"12px",background:C.bg}}>
+              <div style={{minWidth:"900px"}} dangerouslySetInnerHTML={{__html:BRACKET_SVG}}/>
+            </div>
+            <div style={{fontSize:"10px",color:C.dim,marginTop:"10px"}}>Static projection generated from the group-stage results; it does not update with the sliders. Re-rendered each deploy.</div>
+          </div>
+        )}
+
         {tab==="inject"&&(()=>{
           const isUserInjected=(a,b)=>injects.some(d=>d.round==="group"&&((d.team===a&&d.opp===b)||(d.team===b&&d.opp===a)));
           const pending=SCHEDULED_UNPLAYED.filter(m=>!isUserInjected(m.a,m.b));
           const userAdded=SCHEDULED_UNPLAYED.filter(m=>isUserInjected(m.a,m.b));
           const isSel=(a,b)=>injRound==="group"&&injTeam===a&&injOpp===b;
-          const koInjs=injects.filter(d=>d.round&&d.round!=="group");
+          const koInjs=injects.filter(d=>d.round&&d.round!=="group"&&!BASE_KO_RESULTS.some(b=>b.round===d.round&&((b.team===d.team&&b.opp===d.opp)||(b.team===d.opp&&b.opp===d.team))));
           return (
             <div>
+              <div style={{display:"flex",gap:"6px",marginBottom:"18px",borderBottom:`1px solid ${C.line}`,paddingBottom:"12px"}}>
+                {[["group","📊 Group Stage Standings"],["ko","🏆 Knockout Stage"]].map(([s,label])=>(
+                  <button key={s} onClick={()=>{setInjSub(s);setInjRound(s==="ko"?"R32":"group");}} style={{padding:"7px 14px",background:injSub===s?C.green:"transparent",color:injSub===s?"#0a3d3a":C.dim,border:`1px solid ${injSub===s?C.green:C.line}`,borderRadius:"9999px",fontSize:"12px",fontWeight:injSub===s?800:600,cursor:"pointer"}}>{label}</button>
+                ))}
+              </div>
+
+              {injSub==="group"&&(<>
               {/* ── Group Standings ── */}
               <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>GROUP STANDINGS · AS OF 2026-06-24</div>
               <div style={{fontSize:"10px",color:C.dim,marginBottom:"14px"}}>Source: CBS Sports. Top 2 from each group advance; 8 best 3rd-place teams also qualify.</div>
@@ -923,9 +960,12 @@ export default function ProgressivePredictor(){
                   )}
                 </div>
               )}
+              </>)}
 
+              {injSub==="ko"&&(<>
               {/* ── Knockout Stage ── */}
-              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"8px"}}>KNOCKOUT STAGE</div>
+              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>RECORD KNOCKOUT RESULT</div>
+              <div style={{fontSize:"10px",color:C.dim,marginBottom:"8px"}}>Official results baked into the build appear below as <span style={{color:C.green,fontWeight:700}}>OFFICIAL</span>. Anything you add here is stored locally in your browser only.</div>
               <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`,marginBottom:injects.length>0?"12px":"0"}}>
                 <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
                   {[["R32","R of 32"],["R16","R of 16"],["QF","QF"],["SF","SF"],["Final","Final"]].map(([r,label])=>(
@@ -963,9 +1003,32 @@ export default function ProgressivePredictor(){
                     </button>
                   </>
                 )}
+                {BASE_KO_RESULTS.length>0&&(
+                  <div style={{marginTop:"12px",paddingTop:"12px",borderTop:`1px solid ${C.line}`}}>
+                    <div style={{fontSize:"10px",color:C.green,fontWeight:700,letterSpacing:"1px",marginBottom:"6px"}}>OFFICIAL KNOCKOUT RESULTS</div>
+                    {["R32","R16","QF","SF","Final"].map(r=>{
+                      const rms=BASE_KO_RESULTS.filter(d=>d.round===r);
+                      if(!rms.length)return null;
+                      const rl=r==="R32"?"Round of 32":r==="R16"?"Round of 16":r==="QF"?"QF":r==="SF"?"SF":"Final";
+                      return (
+                        <div key={r} style={{marginBottom:"6px"}}>
+                          <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"3px"}}>{rl}</div>
+                          {rms.map((d,i)=>(
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
+                              <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.team]} {NAMES[d.team]}</span>
+                              <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}</span>
+                              <span style={{fontSize:"11px",flex:1}}>{NAMES[d.opp]} {FLAGS[d.opp]}</span>
+                              <span style={{fontSize:"8px",fontWeight:800,color:C.green,border:`1px solid ${C.green}`,borderRadius:"4px",padding:"1px 4px",letterSpacing:"0.5px"}}>OFFICIAL</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 {koInjs.length>0&&(
                   <div style={{marginTop:"12px",paddingTop:"12px",borderTop:`1px solid ${C.line}`}}>
-                    <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"6px"}}>KNOCKOUT RESULTS ADDED</div>
+                    <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"6px"}}>YOUR ADDED RESULTS (LOCAL)</div>
                     {["R32","R16","QF","SF","Final"].map(r=>{
                       const rms=koInjs.filter(d=>d.round===r);
                       if(!rms.length)return null;
@@ -990,10 +1053,11 @@ export default function ProgressivePredictor(){
                   </div>
                 )}
               </div>
+              </>)}
 
               {injects.length>0&&(
-                <button onClick={resetMatchLog} style={{width:"100%",background:"transparent",color:C.dim,border:`1px solid ${C.line}`,borderRadius:"8px",padding:"10px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
-                  Reset all added results
+                <button onClick={resetMatchLog} style={{width:"100%",marginTop:"16px",background:"transparent",color:C.dim,border:`1px solid ${C.line}`,borderRadius:"8px",padding:"10px",fontWeight:700,fontSize:"12px",cursor:"pointer"}}>
+                  Reset all locally-added results
                 </button>
               )}
             </div>

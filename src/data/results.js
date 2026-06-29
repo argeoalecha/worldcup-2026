@@ -190,41 +190,42 @@ export const GROUPS = {
 };
 
 // ─── ROUND OF 32 SCHEDULE ───────────────────────────────────────────────────
-// mn = FIFA bracket match number (73-88), assigned by ascending FIFA match ID.
-// ENG/COD=73, GER/PAR=74, CIV/NOR=75, AUS/EGY=76, BRA/JPN=77, COL/GHA=78,
-// RSA/CAN=79, ESP/AUT=80, MEX/ECU=81, ARG/CPV=82, NED/MAR=83, FRA/SWE=84,
-// USA/BIH=85, BEL/SEN=86, POR/CRO=87, SUI/DZA=88
+// mn = official FIFA bracket match number (73-88), per the can/mex/usa 2026
+// scores-fixtures bracket. Mapping (verified against bracket dates):
+// RSA/CAN=73, GER/PAR=74, NED/MAR=75, BRA/JPN=76, FRA/SWE=77, CIV/NOR=78,
+// MEX/ECU=79, ENG/COD=80, USA/BIH=81, BEL/SEN=82, POR/CRO=83, ESP/AUT=84,
+// SUI/DZA=85, ARG/CPV=86, COL/GHA=87, AUS/EGY=88
 export const R32_SCHEDULE = [
   // Jun 29
-  {mn:79,date:"2026-06-29",a:"RSA",b:"CAN",venue:"SoFi Stadium, Inglewood, CA"},
+  {mn:73,date:"2026-06-29",a:"RSA",b:"CAN",venue:"SoFi Stadium, Inglewood, CA"},
   // Jun 30
-  {mn:77,date:"2026-06-30",a:"BRA",b:"JPN",venue:"NRG Stadium, Houston, TX"},
+  {mn:76,date:"2026-06-30",a:"BRA",b:"JPN",venue:"NRG Stadium, Houston, TX"},
   {mn:74,date:"2026-06-30",a:"GER",b:"PAR",venue:"Gillette Stadium, Foxborough, MA"},
-  {mn:83,date:"2026-06-30",a:"NED",b:"MAR",venue:"Estadio BBVA, Guadalupe, Mexico"},
+  {mn:75,date:"2026-06-30",a:"NED",b:"MAR",venue:"Estadio BBVA, Guadalupe, Mexico"},
   // Jul 1
-  {mn:75,date:"2026-07-01",a:"CIV",b:"NOR",venue:"AT&T Stadium, Arlington, TX"},
-  {mn:84,date:"2026-07-01",a:"FRA",b:"SWE",venue:"MetLife Stadium, East Rutherford, NJ"},
-  {mn:81,date:"2026-07-01",a:"MEX",b:"ECU",venue:"Estadio Banorte, Mexico City, Mexico"},
+  {mn:78,date:"2026-07-01",a:"CIV",b:"NOR",venue:"AT&T Stadium, Arlington, TX"},
+  {mn:77,date:"2026-07-01",a:"FRA",b:"SWE",venue:"MetLife Stadium, East Rutherford, NJ"},
+  {mn:79,date:"2026-07-01",a:"MEX",b:"ECU",venue:"Estadio Banorte, Mexico City, Mexico"},
   // Jul 2
-  {mn:73,date:"2026-07-02",a:"ENG",b:"COD",venue:"Mercedes-Benz Stadium, Atlanta, GA"},
-  {mn:86,date:"2026-07-02",a:"BEL",b:"SEN",venue:"Lumen Field, Seattle, WA"},
-  {mn:85,date:"2026-07-02",a:"USA",b:"BIH",venue:"Levi's Stadium, Santa Clara, CA"},
+  {mn:80,date:"2026-07-02",a:"ENG",b:"COD",venue:"Mercedes-Benz Stadium, Atlanta, GA"},
+  {mn:82,date:"2026-07-02",a:"BEL",b:"SEN",venue:"Lumen Field, Seattle, WA"},
+  {mn:81,date:"2026-07-02",a:"USA",b:"BIH",venue:"Levi's Stadium, Santa Clara, CA"},
   // Jul 3
-  {mn:80,date:"2026-07-03",a:"ESP",b:"AUT",venue:"SoFi Stadium, Inglewood, CA"},
-  {mn:87,date:"2026-07-03",a:"POR",b:"CRO",venue:"BMO Field, Toronto, Canada"},
-  {mn:88,date:"2026-07-03",a:"SUI",b:"DZA",venue:"BC Place, Vancouver, Canada"},
+  {mn:84,date:"2026-07-03",a:"ESP",b:"AUT",venue:"SoFi Stadium, Inglewood, CA"},
+  {mn:83,date:"2026-07-03",a:"POR",b:"CRO",venue:"BMO Field, Toronto, Canada"},
+  {mn:85,date:"2026-07-03",a:"SUI",b:"DZA",venue:"BC Place, Vancouver, Canada"},
   // Jul 4
-  {mn:76,date:"2026-07-04",a:"AUS",b:"EGY",venue:"AT&T Stadium, Arlington, TX"},
-  {mn:82,date:"2026-07-04",a:"ARG",b:"CPV",venue:"Hard Rock Stadium, Miami Gardens, FL"},
-  {mn:78,date:"2026-07-04",a:"COL",b:"GHA",venue:"GEHA Field at Arrowhead Stadium, Kansas City, MO"},
+  {mn:88,date:"2026-07-04",a:"AUS",b:"EGY",venue:"AT&T Stadium, Arlington, TX"},
+  {mn:86,date:"2026-07-04",a:"ARG",b:"CPV",venue:"Hard Rock Stadium, Miami Gardens, FL"},
+  {mn:87,date:"2026-07-04",a:"COL",b:"GHA",venue:"GEHA Field at Arrowhead Stadium, Kansas City, MO"},
 ];
 
 // ─── ROUND OF 16 SCHEDULE ───────────────────────────────────────────────────
 // wA/wB = match numbers of R32 matches whose winners play here.
 export const R16_SCHEDULE = [
   // Jul 5
-  {mn:89,date:"2026-07-05",wA:73,wB:75,venue:"NRG Stadium, Houston, TX"},
-  {mn:90,date:"2026-07-05",wA:74,wB:77,venue:"Lincoln Financial Field, Philadelphia, PA"},
+  {mn:89,date:"2026-07-05",wA:74,wB:77,venue:"NRG Stadium, Houston, TX"},
+  {mn:90,date:"2026-07-05",wA:73,wB:75,venue:"Lincoln Financial Field, Philadelphia, PA"},
   // Jul 6
   {mn:91,date:"2026-07-06",wA:76,wB:78,venue:"MetLife Stadium, East Rutherford, NJ"},
   {mn:92,date:"2026-07-06",wA:79,wB:80,venue:"Estadio Azteca, Mexico City, Mexico"},
@@ -256,6 +257,15 @@ export const SF_SCHEDULE = [
 export const FINAL_SCHEDULE = [
   {mn:103,date:"2026-07-19",lA:101,lB:102,venue:"Hard Rock Stadium, Miami Gardens, FL"},
   {mn:104,date:"2026-07-20",wA:101,wB:102,venue:"MetLife Stadium, East Rutherford, NJ"},
+];
+
+// ─── OFFICIAL KNOCKOUT RESULTS ──────────────────────────────────────────────
+// Baked-in knockout results (R32 onward) — the KO analog of BASE_MATCH_LOG.
+// Add a {round, team, opp, gf, ga} entry as each KO match is confirmed, then
+// build + deploy. The bracket auto-resolves winners into later rounds and Elo
+// updates from these. round ∈ "R32" | "R16" | "QF" | "SF" | "Final".
+export const BASE_KO_RESULTS = [
+  {round:"R32",team:"CAN",opp:"RSA",gf:1,ga:0},  // M73 — Canada 1-0 South Africa → CAN advances
 ];
 
 // ─── OFFICIAL MATCH SCHEDULE (ESPN, 22–27 Jun 2026) ─────────────────────────
