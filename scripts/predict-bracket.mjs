@@ -2,7 +2,7 @@
 // exact model functions from wc2026-predictor.jsx (verbatim) to cascade
 // predicted winners R32 → Final, with travel-fatigue penalties applied per match.
 import {
-  PRE_ELO, BASE_MATCH_LOG, NAMES, FLAGS, MATCH_SCHEDULE,
+  PRE_ELO, BASE_MATCH_LOG, BASE_KO_RESULTS, NAMES, FLAGS, MATCH_SCHEDULE,
   R32_SCHEDULE, R16_SCHEDULE, QF_SCHEDULE, SF_SCHEDULE, FINAL_SCHEDULE,
 } from "../src/data/results.js";
 
@@ -128,7 +128,15 @@ function computeTravelInfo(fromVenue,toVenue){
 }
 
 // ─── CASCADE ────────────────────────────────────────────────────────────────
-const matchLog = JSON.parse(JSON.stringify(BASE_MATCH_LOG)); // group stage only
+// Match log = group stage + any confirmed knockout results, so earned Elo/form
+// reflect played KO matches just as the live app does.
+const matchLog = JSON.parse(JSON.stringify(BASE_MATCH_LOG));
+for(const d of BASE_KO_RESULTS){
+  (matchLog[d.team]=matchLog[d.team]||[]).push({opp:d.opp,gf:d.gf,ga:d.ga});
+  (matchLog[d.opp]=matchLog[d.opp]||[]).push({opp:d.team,gf:d.ga,ga:d.gf});
+}
+// A KO pair meets at most once, so team-pair alone identifies a confirmed result.
+const actualFor = (a,b) => BASE_KO_RESULTS.find(d=>(d.team===a&&d.opp===b)||(d.team===b&&d.opp===a));
 const KO_ALL = {};
 [...R32_SCHEDULE,...R16_SCHEDULE,...QF_SCHEDULE,...SF_SCHEDULE,...FINAL_SCHEDULE].forEach(e=>{KO_ALL[e.mn]=e;});
 
@@ -172,8 +180,21 @@ const ROUND_FOR_MN = mn => mn<=88?"R32":mn<=96?"R16":mn<=100?"QF":mn<=102?"SF":(
 for(const mn of order){
   const e=KO_ALL[mn];
   const {a,b}=teamsFor(mn);
+  if(!a||!b) continue; // bracket slot not yet resolvable
   if(prevVenue[a]===undefined) prevVenue[a]=lastGroupVenue(a);
   if(prevVenue[b]===undefined) prevVenue[b]=lastGroupVenue(b);
+  // Confirmed result → use it verbatim; otherwise predict.
+  const actual=actualFor(a,b);
+  if(actual){
+    const ga=actual.team===a?actual.gf:actual.ga, gb=actual.team===a?actual.ga:actual.gf;
+    const w=ga>gb?a:b, l=ga>gb?b:a;
+    winnerOf[mn]=w; loserOf[mn]=l;
+    results[mn]={mn,round:ROUND_FOR_MN(mn),date:e.date,venue:e.venue,a,b,
+      koA:w===a?1:0,koB:w===b?1:0,winner:w,loser:l,score:[ga,gb],actual:true,
+      eloA:null,eloB:null,penA:0,penB:0,tA:null,tB:null,p:null};
+    prevVenue[w]=e.venue;
+    continue;
+  }
   const tA=CFG.travel?computeTravelInfo(prevVenue[a],e.venue):null;
   const tB=CFG.travel?computeTravelInfo(prevVenue[b],e.venue):null;
   const penA=tA?tA.penalty:0, penB=tB?tB.penalty:0;
@@ -183,10 +204,10 @@ for(const mn of order){
   winnerOf[mn]=w; loserOf[mn]=l;
   const [ga,gb]=predictedScore(p);
   results[mn]={mn,round:ROUND_FOR_MN(mn),date:e.date,venue:e.venue,a,b,
-    koA:p.koWinA,koB:p.koWinB,winner:w,loser:l,score:[ga,gb],
+    koA:p.koWinA,koB:p.koWinB,winner:w,loser:l,score:[ga,gb],actual:false,
     eloA:p.eloA,eloB:p.eloB,penA,penB,tA,tB,p};
-  // Advance the winner's venue. (Match log stays group-stage; power ranking is
-  // fixed from played results, only travel cascades — mirrors the app's predict.)
+  // Advance the winner's venue. Power ranking stays fixed from played results;
+  // only travel cascades — mirrors the app's predict.
   prevVenue[w]=e.venue;
 }
 
@@ -202,7 +223,8 @@ function line(mn){
   const fav=aw?r.a:r.b, favP=aw?r.koA:r.koB;
   const travA=r.tA?` _(−${r.penA.toFixed(1)}, ${r.tA.miles}mi)_`:"";
   const travB=r.tB?` _(−${r.penB.toFixed(1)}, ${r.tB.miles}mi)_`:"";
-  return `| M${r.mn} | ${r.date} | ${fmtTeam(r.a)}${travA} | ${fmtTeam(r.b)}${travB} | **${fmtTeam(r.winner)}** | ${pct(favP)}% | ${r.score[0]}–${r.score[1]} |`;
+  const conf=r.actual?"✓ result":`${pct(favP)}%`;
+  return `| M${r.mn} | ${r.date} | ${fmtTeam(r.a)}${travA} | ${fmtTeam(r.b)}${travB} | **${fmtTeam(r.winner)}** | ${conf} | ${r.score[0]}–${r.score[1]} |`;
 }
 
 if(!isMain){ /* imported as a module — skip CLI output */ }

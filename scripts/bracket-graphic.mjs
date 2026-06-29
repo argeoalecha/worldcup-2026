@@ -77,7 +77,7 @@ function box(node, opts={}){
   if(!r) return;
   const x = node.x, y = node.cy - BH/2;
   const aWin = r.winner===r.a, bWin = r.winner===r.b;
-  const pa = Math.round(r.koA*100)+"%", pb = Math.round(r.koB*100)+"%";
+  const pa = r.actual?"✓":Math.round(r.koA*100)+"%", pb = r.actual?"✓":Math.round(r.koB*100)+"%";
   // header: date + match label
   const d = r.date.slice(5).replace("-","/");
   const champBorder = opts.champ ? `stroke="${C.champ}" stroke-width="2.5"` : `stroke="${C.border}" stroke-width="1"`;
