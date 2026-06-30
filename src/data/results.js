@@ -264,8 +264,13 @@ export const FINAL_SCHEDULE = [
 // Add a {round, team, opp, gf, ga} entry as each KO match is confirmed, then
 // build + deploy. The bracket auto-resolves winners into later rounds and Elo
 // updates from these. round ∈ "R32" | "R16" | "QF" | "SF" | "Final".
+// For penalty shootout wins: set pen:true and gf===ga (regulation score).
+// Convention: team = the advancing side; resolveWinner/Loser honour pen:true.
 export const BASE_KO_RESULTS = [
-  {round:"R32",team:"CAN",opp:"RSA",gf:1,ga:0},  // M73 — Canada 1-0 South Africa → CAN advances
+  {round:"R32",team:"CAN",opp:"RSA",gf:1,ga:0},              // M73 — Canada 1-0 South Africa → CAN advances
+  {round:"R32",team:"PAR",opp:"GER",gf:1,ga:1,pen:true,penTeam:4,penOpp:3},    // M74 — 1-1 AET, Paraguay 4-3 pens → PAR advances
+  {round:"R32",team:"MAR",opp:"NED",gf:1,ga:1,pen:true,penTeam:3,penOpp:2},    // M75 — 1-1 AET, Morocco 3-2 pens → MAR advances
+  {round:"R32",team:"BRA",opp:"JPN",gf:2,ga:1},              // M76 — Brazil 2-1 Japan → BRA advances
 ];
 
 // ─── OFFICIAL MATCH SCHEDULE (FIFA, 22–27 Jun 2026) ─────────────────────────

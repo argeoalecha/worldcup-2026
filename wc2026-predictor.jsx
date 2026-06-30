@@ -29,7 +29,7 @@ function resolveWinner(mn, koMatches) {
     const round = "R32";
     const inj = koMatches.find(d => d.round === round && ((d.team === entry.a && d.opp === entry.b) || (d.team === entry.b && d.opp === entry.a)));
     if (!inj) return null;
-    return inj.gf > inj.ga ? inj.team : inj.opp;
+    return (inj.gf > inj.ga || inj.pen) ? inj.team : inj.opp;
   }
   // R16+: resolve both sides recursively
   const teamA = resolveWinner(entry.wA, koMatches);
@@ -38,7 +38,7 @@ function resolveWinner(mn, koMatches) {
   const round = ROUND_FOR_MN(mn);
   const inj = koMatches.find(d => d.round === round && ((d.team === teamA && d.opp === teamB) || (d.team === teamB && d.opp === teamA)));
   if (!inj) return null;
-  return inj.gf > inj.ga ? inj.team : inj.opp;
+  return (inj.gf > inj.ga || inj.pen) ? inj.team : inj.opp;
 }
 
 // Returns the losing team abbr of a match, or null if not yet known.
@@ -48,7 +48,7 @@ function resolveLoser(mn, koMatches) {
   if (entry.a && entry.b) {
     const inj = koMatches.find(d => d.round === "R32" && ((d.team === entry.a && d.opp === entry.b) || (d.team === entry.b && d.opp === entry.a)));
     if (!inj) return null;
-    return inj.gf > inj.ga ? inj.opp : inj.team;
+    return (inj.gf > inj.ga || inj.pen) ? inj.opp : inj.team;
   }
   const teamA = resolveWinner(entry.wA, koMatches);
   const teamB = resolveWinner(entry.wB, koMatches);
@@ -56,7 +56,7 @@ function resolveLoser(mn, koMatches) {
   const round = ROUND_FOR_MN(mn);
   const inj = koMatches.find(d => d.round === round && ((d.team === teamA && d.opp === teamB) || (d.team === teamB && d.opp === teamA)));
   if (!inj) return null;
-  return inj.gf > inj.ga ? inj.opp : inj.team;
+  return (inj.gf > inj.ga || inj.pen) ? inj.opp : inj.team;
 }
 
 // Returns {a, b} team abbrs for a match number's two participants, or null if either is unresolved.
@@ -661,6 +661,8 @@ export default function ProgressivePredictor(){
               if(tA&&tB){res=injForRound.find(r=>(r.team===tA&&r.opp===tB)||(r.team===tB&&r.opp===tA))||null;}
               const gf=res?(res.team===tA?res.gf:res.ga):null;
               const ga=res?(res.team===tA?res.ga:res.gf):null;
+              const penA=res?.pen?(res.team===tA?res.penTeam:res.penOpp):null;
+              const penB=res?.pen?(res.team===tA?res.penOpp:res.penTeam):null;
               const bothKnown=!!(tA&&tB);
               return (
                 <div style={{background:C.panel,borderRadius:"10px",padding:"10px 14px",border:`1px solid ${res?C.lineStrong:C.line}`,display:"flex",alignItems:"center",justifyContent:"space-between",gap:"8px"}}>
@@ -671,7 +673,7 @@ export default function ProgressivePredictor(){
                   <div style={{textAlign:"center",minWidth:"106px"}}>
                     <div style={{fontSize:"9px",color:C.dim,marginBottom:"2px"}}>{fmtDate(entry.date)} · M{entry.mn}</div>
                     {res!=null?(
-                      <div style={{fontSize:"14px",fontWeight:800,color:gf>ga?C.green:gf<ga?C.red:C.amber}}>{gf}–{ga}</div>
+                      <div style={{fontSize:"14px",fontWeight:800,color:(gf>ga||(res.pen&&res.team===tA))?C.green:(gf<ga||(res.pen&&res.opp===tA))?C.red:C.amber}}>{penA!=null?`${gf}(${penA})–${ga}(${penB})`:res.pen?`${gf}–${ga} (p)`:`${gf}–${ga}`}</div>
                     ):(
                       <div>
                         <div style={{fontSize:"9px",color:C.dim,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100px"}}>{entry.venue.split(",")[0]}</div>
@@ -1022,7 +1024,7 @@ export default function ProgressivePredictor(){
                           {rms.map((d,i)=>(
                             <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
                               <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.team]} {NAMES[d.team]}</span>
-                              <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}</span>
+                              <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga||d.pen?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}{d.pen?" (p)":""}</span>
                               <span style={{fontSize:"11px",flex:1}}>{NAMES[d.opp]} {FLAGS[d.opp]}</span>
                               <span style={{fontSize:"8px",fontWeight:800,color:C.green,border:`1px solid ${C.green}`,borderRadius:"4px",padding:"1px 4px",letterSpacing:"0.5px"}}>OFFICIAL</span>
                             </div>
@@ -1047,7 +1049,7 @@ export default function ProgressivePredictor(){
                             return (
                               <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
                                 <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.a]} {NAMES[d.a]}</span>
-                                <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}</span>
+                                <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga||d.pen?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}{d.pen?" (p)":""}</span>
                                 <span style={{fontSize:"11px",flex:1}}>{NAMES[d.b]} {FLAGS[d.b]}</span>
                                 <button onClick={()=>removeInject(gi)} aria-label="Remove" style={{background:"transparent",border:"none",color:C.dim,fontSize:"16px",lineHeight:1,cursor:"pointer",padding:"0 2px"}}>×</button>
                               </div>
