@@ -677,9 +677,7 @@ export default function ProgressivePredictor(){
                     ):(
                       <div>
                         <div style={{fontSize:"9px",color:C.dim,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100px"}}>{entry.venue.split(",")[0]}</div>
-                        {bothKnown?(
-                          <button onClick={()=>{setTab("inject");setInjTeam(tA);setInjOpp(tB);setInjRound(koSchedRound);}} style={{background:"transparent",color:C.coral,border:`1px solid ${C.coral}`,borderRadius:"4px",padding:"1px 7px",fontSize:"9px",fontWeight:700,cursor:"pointer"}}>+ result</button>
-                        ):(
+                        {!bothKnown&&(
                           <div style={{fontSize:"9px",color:C.dim,fontStyle:"italic"}}>awaiting bracket</div>
                         )}
                       </div>
@@ -731,10 +729,7 @@ export default function ProgressivePredictor(){
                         {res?(
                           <span style={{fontSize:"13px",fontWeight:800,color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
                         ):(
-                          <div>
-                            <div style={{fontSize:"9px",color:C.dim,marginBottom:"2px"}}>{m.venue.split(",")[0]}</div>
-                            <button onClick={()=>{setTab("inject");setInjTeam(m.a);setInjOpp(m.b);setInjRound("group");}} style={{background:C.coral,color:"#fff",border:"none",borderRadius:"5px",padding:"2px 8px",fontSize:"10px",fontWeight:700,cursor:"pointer"}}>+ add result</button>
-                          </div>
+                          <div style={{fontSize:"9px",color:C.dim}}>{m.venue.split(",")[0]}</div>
                         )}
                       </div>
                       <span style={{fontSize:"12px",fontWeight:600,flex:1}}>{NAMES[m.b]} {FLAGS[m.b]}</span>
@@ -767,10 +762,7 @@ export default function ProgressivePredictor(){
                         {res?(
                           <span style={{fontSize:"13px",fontWeight:800,color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
                         ):(
-                          <div>
-                            {info&&<div style={{fontSize:"9px",color:C.dim,marginBottom:"2px"}}>{info.venue.split(",")[0]}</div>}
-                            <button onClick={()=>{setTab("inject");setInjTeam(a);setInjOpp(b);setInjRound("group");}} style={{background:C.coral,color:"#fff",border:"none",borderRadius:"5px",padding:"2px 8px",fontSize:"10px",fontWeight:700,cursor:"pointer"}}>+ add result</button>
-                          </div>
+                          <div style={{fontSize:"9px",color:C.dim}}>{info?info.venue.split(",")[0]:""}</div>
                         )}
                       </div>
                       <span style={{fontSize:"12px",fontWeight:600,flex:1}}>{NAMES[b]} {FLAGS[b]}</span>
@@ -805,10 +797,7 @@ export default function ProgressivePredictor(){
                           {res?(
                             <span style={{fontSize:"12px",fontWeight:800,minWidth:"34px",textAlign:"center",color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
                           ):(
-                            <div style={{display:"flex",flexDirection:"column",alignItems:"center",minWidth:"52px",gap:"2px"}}>
-                              {info&&<span style={{fontSize:"9px",color:C.dim,whiteSpace:"nowrap"}}>{fmtDate(info.date)}</span>}
-                              <button onClick={(e)=>{e.stopPropagation();setTab("inject");setInjTeam(a);setInjOpp(b);setInjRound("group");}} style={{background:"transparent",color:C.coral,border:`1px solid ${C.coral}`,borderRadius:"4px",padding:"1px 5px",fontSize:"9px",fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>+add</button>
-                            </div>
+                            <span style={{fontSize:"9px",color:C.dim,whiteSpace:"nowrap",minWidth:"34px",textAlign:"center"}}>{info?fmtDate(info.date):""}</span>
                           )}
                           <span style={{fontSize:"11px",flex:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{b} {FLAGS[b]}</span>
                         </div>
@@ -904,115 +893,13 @@ export default function ProgressivePredictor(){
                 })}
               </div>
 
-              {/* ── Add Upcoming Result ── */}
-              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>ADD UPCOMING RESULT</div>
-              <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Scheduled matches not yet in official results. Click a match, enter the final score, then add.</div>
-              {pending.length===0&&userAdded.length===0?(
-                <div style={{padding:"10px 14px",background:"rgba(37,164,151,0.06)",border:`1px solid rgba(37,164,151,0.2)`,borderRadius:"8px",fontSize:"11px",color:C.green,marginBottom:"24px"}}>
-                  All scheduled group matches are covered by official results.
-                </div>
-              ):(
-                <div style={{marginBottom:"24px"}}>
-                  {pending.length>0&&(
-                    <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`,marginBottom:"10px"}}>
-                      <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"8px"}}>SELECT A MATCH</div>
-                      {pending.map(m=>{
-                        const sel=isSel(m.a,m.b);
-                        return (
-                          <div key={m.a+m.b} style={{marginBottom:"4px"}}>
-                            <button onClick={()=>{setInjTeam(m.a);setInjOpp(m.b);setInjRound("group");setInjGF(0);setInjGA(0);}}
-                              style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 10px",background:sel?"rgba(37,164,151,0.08)":"transparent",border:`1px solid ${sel?C.green:C.line}`,borderRadius:sel?"8px 8px 0 0":"8px",cursor:"pointer",textAlign:"left",boxSizing:"border-box"}}>
-                              <span style={{fontSize:"12px",fontWeight:600,color:C.text}}>{FLAGS[m.a]} {NAMES[m.a]} <span style={{color:C.dim,fontWeight:400}}>vs</span> {FLAGS[m.b]} {NAMES[m.b]}</span>
-                              <span style={{fontSize:"10px",color:C.dim,whiteSpace:"nowrap",marginLeft:"8px"}}>{fmtDate(m.date)}</span>
-                            </button>
-                            {sel&&(
-                              <div style={{padding:"14px",background:C.panelAlt,border:`1px solid ${C.green}`,borderTop:"none",borderRadius:"0 0 8px 8px"}}>
-                                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"20px",marginBottom:"12px"}}>
-                                  <div style={{textAlign:"center"}}>
-                                    <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>{NAMES[m.a].toUpperCase()}</div>
-                                    <input aria-label={`${m.a} goals`} type="number" min={0} max={12} value={injGF} onChange={e=>setInjGF(Number(e.target.value))} style={{width:"60px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"6px",borderRadius:"8px",fontSize:"22px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
-                                  </div>
-                                  <div style={{fontSize:"18px",color:C.dim,marginTop:"14px"}}>–</div>
-                                  <div style={{textAlign:"center"}}>
-                                    <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>{NAMES[m.b].toUpperCase()}</div>
-                                    <input aria-label={`${m.b} goals`} type="number" min={0} max={12} value={injGA} onChange={e=>setInjGA(Number(e.target.value))} style={{width:"60px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"6px",borderRadius:"8px",fontSize:"22px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
-                                  </div>
-                                </div>
-                                <button onClick={injectResult} style={{width:"100%",background:C.coral,color:"#fff",border:"none",borderRadius:"8px",padding:"9px",fontWeight:800,fontSize:"13px",cursor:"pointer"}}>
-                                  Add {FLAGS[m.a]} {injGF}–{injGA} {FLAGS[m.b]}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {userAdded.length>0&&(
-                    <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`}}>
-                      <div style={{fontSize:"10px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"8px"}}>YOUR ADDED RESULTS</div>
-                      {userAdded.map(m=>{
-                        const idx=injects.findIndex(d=>d.round==="group"&&((d.team===m.a&&d.opp===m.b)||(d.team===m.b&&d.opp===m.a)));
-                        const d=injects[idx];
-                        const gf=d.team===m.a?d.gf:d.ga, ga=d.team===m.a?d.ga:d.gf;
-                        return (
-                          <div key={m.a+m.b} style={{display:"flex",alignItems:"center",gap:"6px",padding:"5px 0",borderBottom:`1px solid ${C.line}`}}>
-                            <span style={{fontSize:"12px",flex:1,textAlign:"right"}}>{FLAGS[m.a]} {NAMES[m.a]}</span>
-                            <span style={{fontSize:"13px",fontWeight:800,color:gf>ga?C.green:gf<ga?C.red:C.amber,minWidth:"36px",textAlign:"center"}}>{gf}–{ga}</span>
-                            <span style={{fontSize:"12px",flex:1}}>{NAMES[m.b]} {FLAGS[m.b]}</span>
-                            <button onClick={()=>removeInject(idx)} aria-label="Remove result" style={{background:"transparent",border:"none",color:C.dim,fontSize:"16px",lineHeight:1,cursor:"pointer",padding:"0 4px"}}>×</button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
               </>)}
 
               {injSub==="ko"&&(<>
               {/* ── Knockout Stage ── */}
-              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>RECORD KNOCKOUT RESULT</div>
-              <div style={{fontSize:"10px",color:C.dim,marginBottom:"8px"}}>Official results baked into the build appear below as <span style={{color:C.green,fontWeight:700}}>OFFICIAL</span>. Anything you add here is stored locally in your browser only.</div>
-              <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`,marginBottom:injects.length>0?"12px":"0"}}>
-                <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
-                  {[["R32","R of 32"],["R16","R of 16"],["QF","QF"],["SF","SF"],["Final","Final"]].map(([r,label])=>(
-                    <button key={r} onClick={()=>setInjRound(r)} style={{padding:"5px 11px",background:injRound===r?C.coral:"transparent",color:injRound===r?"#fff":C.dim,border:`1px solid ${injRound===r?C.coral:C.line}`,borderRadius:"9999px",fontSize:"11px",fontWeight:700,cursor:"pointer"}}>{label}</button>
-                  ))}
-                </div>
-                {injRound==="group"?(
-                  <div style={{fontSize:"11px",color:C.dim,fontStyle:"italic"}}>Select a round above to record a knockout result.</div>
-                ):(
-                  <>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:"8px",alignItems:"end",marginBottom:"10px"}}>
-                      <div>
-                        <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>TEAM A</div>
-                        <select aria-label="Knockout Team A" value={injTeam} onChange={e=>setInjTeam(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"7px",borderRadius:"8px",fontSize:"12px"}}>
-                          {Object.keys(NAMES).map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
-                        </select>
-                      </div>
-                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"4px"}}>
-                        <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px"}}>SCORE</div>
-                        <div style={{display:"flex",alignItems:"center",gap:"4px"}}>
-                          <input aria-label={`${injTeam} goals`} type="number" min={0} max={12} value={injGF} onChange={e=>setInjGF(Number(e.target.value))} style={{width:"44px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"5px",borderRadius:"8px",fontSize:"16px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
-                          <span style={{color:C.dim,fontWeight:700}}>–</span>
-                          <input aria-label={`${injOpp} goals`} type="number" min={0} max={12} value={injGA} onChange={e=>setInjGA(Number(e.target.value))} style={{width:"44px",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"5px",borderRadius:"8px",fontSize:"16px",fontWeight:800,textAlign:"center",boxSizing:"border-box"}}/>
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"0.5px",marginBottom:"4px"}}>TEAM B</div>
-                        <select aria-label="Knockout Team B" value={injOpp} onChange={e=>setInjOpp(e.target.value)} style={{width:"100%",background:C.bg,border:`1px solid ${C.line}`,color:C.text,padding:"7px",borderRadius:"8px",fontSize:"12px"}}>
-                          {Object.keys(NAMES).map(a=><option key={a} value={a}>{FLAGS[a]} {NAMES[a]}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <button onClick={injectResult} style={{width:"100%",background:C.coral,color:"#fff",border:"none",borderRadius:"8px",padding:"9px",fontWeight:800,fontSize:"13px",cursor:"pointer"}}>
-                      Add result · {injRound==="R32"?"Round of 32":injRound==="R16"?"Round of 16":injRound==="QF"?"Quarter-Finals":injRound==="SF"?"Semi-Finals":"Final"}
-                    </button>
-                  </>
-                )}
+              <div style={{background:C.panel,borderRadius:"10px",padding:"12px",border:`1px solid ${C.line}`}}>
                 {BASE_KO_RESULTS.length>0&&(
-                  <div style={{marginTop:"12px",paddingTop:"12px",borderTop:`1px solid ${C.line}`}}>
+                  <div>
                     <div style={{fontSize:"10px",color:C.green,fontWeight:700,letterSpacing:"1px",marginBottom:"6px"}}>OFFICIAL KNOCKOUT RESULTS</div>
                     {["R32","R16","QF","SF","Final"].map(r=>{
                       const rms=BASE_KO_RESULTS.filter(d=>d.round===r);
@@ -1024,7 +911,7 @@ export default function ProgressivePredictor(){
                           {rms.map((d,i)=>(
                             <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
                               <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.team]} {NAMES[d.team]}</span>
-                              <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga||d.pen?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}{d.pen?" (p)":""}</span>
+                              <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga||d.pen?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"60px",textAlign:"center"}}>{d.penTeam!=null?`${d.gf}(${d.penTeam})–${d.ga}(${d.penOpp})`:d.pen?`${d.gf}–${d.ga} (p)`:`${d.gf}–${d.ga}`}</span>
                               <span style={{fontSize:"11px",flex:1}}>{NAMES[d.opp]} {FLAGS[d.opp]}</span>
                               <span style={{fontSize:"8px",fontWeight:800,color:C.green,border:`1px solid ${C.green}`,borderRadius:"4px",padding:"1px 4px",letterSpacing:"0.5px"}}>OFFICIAL</span>
                             </div>
