@@ -24,3 +24,5 @@ Two scripts generate the shareable bracket artifacts (not used by the live app U
 # Caveats
 - Match numbering: R32 = M73–M88, R16 = M89–M96, QF = M97–M100, SF = M101–M102, 3rd place = M103, Final = M104.
 - Re-run both scripts (`node scripts/predict-bracket.mjs` then `node scripts/bracket-graphic.mjs`) any time `BASE_KO_RESULTS` changes — outputs are not auto-regenerated on build. See the [update-results runbook](/runbooks/update-results.md).
+- For confirmed matches, the winner/loser must come from `actual.team`/`actual.opp` (`predict-bracket.mjs` line 190), **not** from comparing `gf`/`ga` — a penalty-shootout draw has `gf===ga`, so score comparison silently picks the wrong side. `actual.team` already encodes the advancing side per the [results-data convention](/tables/results-data.md).
+- `bracket-graphic.mjs`'s header caption (a hardcoded date + round-status string, near the top of the file) is not derived from data — it must be hand-edited each time the script is re-run for a new round, or it goes stale (this happened once: still read "Round of 16 in progress" after QF results were added).

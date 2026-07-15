@@ -23,7 +23,7 @@ timestamp: 2026-07-12T14:50:46Z
 | `SF_SCHEDULE` | 249 | Semi-finals — same convention. |
 | `FINAL_SCHEDULE` | 257 | M103 (3rd place, `lA`/`lB` = SF losers) and M104 (Final, `wA`/`wB` = SF winners). |
 | `BASE_KO_RESULTS` | 269 | Confirmed knockout results (R32 onward) — the KO analog of `BASE_MATCH_LOG`. Each entry: `{round, team, opp, gf, ga, pen?, penTeam?, penOpp?}`. |
-| `MATCH_SCHEDULE` | 301 | Full group-stage fixture list (MD2–MD3, Jun 22–27 2026). |
+| `MATCH_SCHEDULE` | 303 | Full group-stage fixture list (MD2–MD3, Jun 22–27 2026). |
 
 # `BASE_KO_RESULTS` entry shape
 ```js

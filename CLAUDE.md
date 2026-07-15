@@ -5,6 +5,7 @@
 A fully static, client-side FIFA World Cup 2026 prediction tool. No backend, no database, no auth. Deployed as a SPA on Netlify via CLI.
 
 Live URL: https://hayahai-wc2026.netlify.app
+GitHub: https://github.com/argeoalecha/worldcup-2026 (`origin/main`) — no CI pipeline, GitHub is history/backup only
 
 ---
 
@@ -20,7 +21,7 @@ This project has an OKF knowledge bundle at `okf/`. Read `okf/index.md` before s
 - **Styling:** Inline styles throughout — no CSS framework, no Tailwind
 - **Theme:** Hayah Classic (cream bg `#faf7f5`, deep teal `#0a3d3a`, coral `#ff6b47`, teal green `#25A497`)
 - **Fonts:** DM Serif Display (headings) + Plus Jakarta Sans (body)
-- **Deployment:** Netlify CLI — no GitHub connection, no CI pipeline
+- **Deployment:** Netlify CLI — deploy is independent of git; pushing to GitHub does not trigger a build
 - **State:** React `useState` + `useMemo` + `useCallback` only — no external state library
 - **Persistence:** `localStorage` under key `wc2026:injects:v1` (user-injected deltas only)
 
@@ -118,7 +119,9 @@ All controlled via the **Features Tuning** tab. Defaults live in `CFG_DEFAULTS` 
 npm run build && npx netlify-cli deploy --prod
 ```
 
-Never push to GitHub — there is no connected repo. Deploy is always CLI only.
+Deploy is always CLI only — pushing to GitHub does not deploy the site.
+
+GitHub (`origin` → https://github.com/argeoalecha/worldcup-2026) is connected for history/backup. Push with `git push origin main` when asked to; it is a separate, explicit step from deploying and does not happen automatically after every commit.
 
 ---
 

@@ -19,8 +19,11 @@ Any time a real-world match result (group stage or knockout) needs to go live on
 
 # What NOT to do
 - Do not scrape or automate result fetching — results are entered manually by the owner.
-- Do not push to GitHub — there is no connected repo; deploy is Netlify CLI only.
 - Do not modify [prediction-model](/modules/prediction-model.md) math functions as part of a results update unless explicitly asked.
+- Do not assume a `git push` deploys the site — GitHub and Netlify are independent; pushing to `origin` is history/backup only and never triggers a build.
+
+# GitHub
+`origin` → https://github.com/argeoalecha/worldcup-2026 (`main`), connected 2026-07-16. No CI/webhook — push is a separate, explicit step (`git push origin main`) from the deploy step above, not an automatic consequence of committing.
 
 # Live URL
 https://hayahai-wc2026.netlify.app

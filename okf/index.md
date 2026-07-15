@@ -4,7 +4,7 @@ okf_version: "0.1"
 
 # WC 2026 Adaptive Predictor
 
-Curated knowledge bundle for a fully static, client-side FIFA World Cup 2026 prediction tool (Vite + React, no backend, no database). Live at https://hayahai-wc2026.netlify.app.
+Curated knowledge bundle for a fully static, client-side FIFA World Cup 2026 prediction tool (Vite + React, no backend, no database). Live at https://hayahai-wc2026.netlify.app. Source on GitHub at https://github.com/argeoalecha/worldcup-2026 (history/backup only — deploy is Netlify CLI, independent of git).
 
 # Modules
 
