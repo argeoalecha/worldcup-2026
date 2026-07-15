@@ -197,66 +197,66 @@ export const GROUPS = {
 // SUI/DZA=85, ARG/CPV=86, COL/GHA=87, AUS/EGY=88
 export const R32_SCHEDULE = [
   // Jun 29
-  {mn:73,date:"2026-06-29",a:"RSA",b:"CAN",venue:"SoFi Stadium, Inglewood, CA"},
+  {mn:73,date:"2026-06-29",a:"RSA",b:"CAN",venue:"Inglewood, CA"},
   // Jun 30
-  {mn:76,date:"2026-06-30",a:"BRA",b:"JPN",venue:"NRG Stadium, Houston, TX"},
-  {mn:74,date:"2026-06-30",a:"GER",b:"PAR",venue:"Gillette Stadium, Foxborough, MA"},
-  {mn:75,date:"2026-06-30",a:"NED",b:"MAR",venue:"Estadio BBVA, Guadalupe, Mexico"},
+  {mn:76,date:"2026-06-30",a:"BRA",b:"JPN",venue:"Houston, TX"},
+  {mn:74,date:"2026-06-30",a:"GER",b:"PAR",venue:"Foxborough, MA"},
+  {mn:75,date:"2026-06-30",a:"NED",b:"MAR",venue:"Guadalupe, Mexico"},
   // Jul 1
-  {mn:78,date:"2026-07-01",a:"CIV",b:"NOR",venue:"AT&T Stadium, Arlington, TX"},
-  {mn:77,date:"2026-07-01",a:"FRA",b:"SWE",venue:"MetLife Stadium, East Rutherford, NJ"},
-  {mn:79,date:"2026-07-01",a:"MEX",b:"ECU",venue:"Estadio Banorte, Mexico City, Mexico"},
+  {mn:78,date:"2026-07-01",a:"CIV",b:"NOR",venue:"Arlington, TX"},
+  {mn:77,date:"2026-07-01",a:"FRA",b:"SWE",venue:"East Rutherford, NJ"},
+  {mn:79,date:"2026-07-01",a:"MEX",b:"ECU",venue:"Mexico City, Mexico"},
   // Jul 2
-  {mn:80,date:"2026-07-02",a:"ENG",b:"COD",venue:"Mercedes-Benz Stadium, Atlanta, GA"},
-  {mn:82,date:"2026-07-02",a:"BEL",b:"SEN",venue:"Lumen Field, Seattle, WA"},
-  {mn:81,date:"2026-07-02",a:"USA",b:"BIH",venue:"Levi's Stadium, Santa Clara, CA"},
+  {mn:80,date:"2026-07-02",a:"ENG",b:"COD",venue:"Atlanta, GA"},
+  {mn:82,date:"2026-07-02",a:"BEL",b:"SEN",venue:"Seattle, WA"},
+  {mn:81,date:"2026-07-02",a:"USA",b:"BIH",venue:"Santa Clara, CA"},
   // Jul 3
-  {mn:84,date:"2026-07-03",a:"ESP",b:"AUT",venue:"SoFi Stadium, Inglewood, CA"},
-  {mn:83,date:"2026-07-03",a:"POR",b:"CRO",venue:"BMO Field, Toronto, Canada"},
-  {mn:85,date:"2026-07-03",a:"SUI",b:"DZA",venue:"BC Place, Vancouver, Canada"},
+  {mn:84,date:"2026-07-03",a:"ESP",b:"AUT",venue:"Inglewood, CA"},
+  {mn:83,date:"2026-07-03",a:"POR",b:"CRO",venue:"Toronto, Canada"},
+  {mn:85,date:"2026-07-03",a:"SUI",b:"DZA",venue:"Vancouver, Canada"},
   // Jul 4
-  {mn:88,date:"2026-07-04",a:"AUS",b:"EGY",venue:"AT&T Stadium, Arlington, TX"},
-  {mn:86,date:"2026-07-04",a:"ARG",b:"CPV",venue:"Hard Rock Stadium, Miami Gardens, FL"},
-  {mn:87,date:"2026-07-04",a:"COL",b:"GHA",venue:"GEHA Field at Arrowhead Stadium, Kansas City, MO"},
+  {mn:88,date:"2026-07-04",a:"AUS",b:"EGY",venue:"Arlington, TX"},
+  {mn:86,date:"2026-07-04",a:"ARG",b:"CPV",venue:"Miami Gardens, FL"},
+  {mn:87,date:"2026-07-04",a:"COL",b:"GHA",venue:"Kansas City, MO"},
 ];
 
 // ─── ROUND OF 16 SCHEDULE ───────────────────────────────────────────────────
 // wA/wB = match numbers of R32 matches whose winners play here.
 export const R16_SCHEDULE = [
   // Jul 5
-  {mn:89,date:"2026-07-05",wA:74,wB:77,venue:"NRG Stadium, Houston, TX"},
-  {mn:90,date:"2026-07-05",wA:73,wB:75,venue:"Lincoln Financial Field, Philadelphia, PA"},
+  {mn:89,date:"2026-07-05",wA:74,wB:77,venue:"Philadelphia, PA"},
+  {mn:90,date:"2026-07-05",wA:73,wB:75,venue:"Houston, TX"},
   // Jul 6
-  {mn:91,date:"2026-07-06",wA:76,wB:78,venue:"MetLife Stadium, East Rutherford, NJ"},
-  {mn:92,date:"2026-07-06",wA:79,wB:80,venue:"Estadio Azteca, Mexico City, Mexico"},
+  {mn:91,date:"2026-07-06",wA:76,wB:78,venue:"East Rutherford, NJ"},
+  {mn:92,date:"2026-07-06",wA:79,wB:80,venue:"Mexico City, Mexico"},
   // Jul 7
-  {mn:93,date:"2026-07-07",wA:83,wB:84,venue:"AT&T Stadium, Arlington, TX"},
-  {mn:94,date:"2026-07-07",wA:81,wB:82,venue:"Lumen Field, Seattle, WA"},
+  {mn:93,date:"2026-07-07",wA:83,wB:84,venue:"Arlington, TX"},
+  {mn:94,date:"2026-07-07",wA:81,wB:82,venue:"Seattle, WA"},
   // Jul 8
-  {mn:95,date:"2026-07-08",wA:86,wB:88,venue:"Mercedes-Benz Stadium, Atlanta, GA"},
-  {mn:96,date:"2026-07-08",wA:85,wB:87,venue:"BC Place, Vancouver, Canada"},
+  {mn:95,date:"2026-07-08",wA:86,wB:88,venue:"Atlanta, GA"},
+  {mn:96,date:"2026-07-08",wA:85,wB:87,venue:"Vancouver, Canada"},
 ];
 
 // ─── QUARTER-FINAL SCHEDULE ─────────────────────────────────────────────────
 export const QF_SCHEDULE = [
-  {mn:97, date:"2026-07-10",wA:89,wB:90,venue:"Gillette Stadium, Foxborough, MA"},
-  {mn:98, date:"2026-07-11",wA:93,wB:94,venue:"SoFi Stadium, Inglewood, CA"},
-  {mn:99, date:"2026-07-12",wA:91,wB:92,venue:"Hard Rock Stadium, Miami Gardens, FL"},
-  {mn:100,date:"2026-07-12",wA:95,wB:96,venue:"GEHA Field at Arrowhead Stadium, Kansas City, MO"},
+  {mn:97, date:"2026-07-10",wA:89,wB:90,venue:"Foxborough, MA"},
+  {mn:98, date:"2026-07-11",wA:93,wB:94,venue:"Inglewood, CA"},
+  {mn:99, date:"2026-07-12",wA:91,wB:92,venue:"Miami Gardens, FL"},
+  {mn:100,date:"2026-07-12",wA:95,wB:96,venue:"Kansas City, MO"},
 ];
 
 // ─── SEMI-FINAL SCHEDULE ────────────────────────────────────────────────────
 export const SF_SCHEDULE = [
-  {mn:101,date:"2026-07-15",wA:97, wB:98, venue:"AT&T Stadium, Arlington, TX"},
-  {mn:102,date:"2026-07-16",wA:99, wB:100,venue:"Mercedes-Benz Stadium, Atlanta, GA"},
+  {mn:101,date:"2026-07-15",wA:97, wB:98, venue:"Arlington, TX"},
+  {mn:102,date:"2026-07-16",wA:99, wB:100,venue:"Atlanta, GA"},
 ];
 
 // ─── FINAL & THIRD PLACE ────────────────────────────────────────────────────
 // M103: lA/lB = losers of those SF matches (3rd place play-off)
 // M104: wA/wB = winners of those SF matches (Final)
 export const FINAL_SCHEDULE = [
-  {mn:103,date:"2026-07-19",lA:101,lB:102,venue:"Hard Rock Stadium, Miami Gardens, FL"},
-  {mn:104,date:"2026-07-20",wA:101,wB:102,venue:"MetLife Stadium, East Rutherford, NJ"},
+  {mn:103,date:"2026-07-19",lA:101,lB:102,venue:"Miami Gardens, FL"},
+  {mn:104,date:"2026-07-20",wA:101,wB:102,venue:"East Rutherford, NJ"},
 ];
 
 // ─── OFFICIAL KNOCKOUT RESULTS ──────────────────────────────────────────────
@@ -271,6 +271,32 @@ export const BASE_KO_RESULTS = [
   {round:"R32",team:"PAR",opp:"GER",gf:1,ga:1,pen:true,penTeam:4,penOpp:3},    // M74 — 1-1 AET, Paraguay 4-3 pens → PAR advances
   {round:"R32",team:"MAR",opp:"NED",gf:1,ga:1,pen:true,penTeam:3,penOpp:2},    // M75 — 1-1 AET, Morocco 3-2 pens → MAR advances
   {round:"R32",team:"BRA",opp:"JPN",gf:2,ga:1},              // M76 — Brazil 2-1 Japan → BRA advances
+  {round:"R32",team:"FRA",opp:"SWE",gf:3,ga:0},              // M77 — France 3-0 Sweden → FRA advances
+  {round:"R32",team:"NOR",opp:"CIV",gf:2,ga:1},              // M78 — Norway 2-1 Ivory Coast → NOR advances
+  {round:"R32",team:"MEX",opp:"ECU",gf:2,ga:0},              // M79 — Mexico 2-0 Ecuador → MEX advances
+  {round:"R32",team:"ENG",opp:"COD",gf:2,ga:1},              // M80 — England 2-1 Congo DR → ENG advances
+  {round:"R32",team:"BEL",opp:"SEN",gf:3,ga:2},              // M82 — Belgium 3-2 Senegal → BEL advances
+  {round:"R32",team:"USA",opp:"BIH",gf:2,ga:0},              // M81 — USA 2-0 Bosnia and Herzegovina → USA advances
+  {round:"R32",team:"ESP",opp:"AUT",gf:3,ga:0},              // Spain 3-0 Austria → ESP advances
+  {round:"R32",team:"POR",opp:"CRO",gf:2,ga:1},              // Portugal 2-1 Croatia → POR advances
+  {round:"R32",team:"SUI",opp:"DZA",gf:2,ga:0},              // Switzerland 2-0 Algeria → SUI advances
+  {round:"R32",team:"ARG",opp:"CPV",gf:3,ga:2},              // Argentina 3-2 Cape Verde → ARG advances
+  {round:"R32",team:"COL",opp:"GHA",gf:1,ga:0},              // Colombia 1-0 Ghana → COL advances
+  {round:"R32",team:"EGY",opp:"AUS",gf:1,ga:1,pen:true,penTeam:4,penOpp:2},  // M88 - 1-1 AET, Egypt 4-2 pens → EGY advances
+  {round:"R16",team:"FRA",opp:"PAR",gf:1,ga:0},              // M89 — France 1-0 Paraguay → FRA advances
+  {round:"R16",team:"MAR",opp:"CAN",gf:3,ga:0},              // M90 — Morocco 3-0 Canada → MAR advances
+  {round:"R16",team:"NOR",opp:"BRA",gf:2,ga:1},              // M91 — Norway 2-1 Brazil → NOR advances
+  {round:"R16",team:"ENG",opp:"MEX",gf:3,ga:2},              // M92 — England 3-2 Mexico → ENG advances
+  {round:"R16",team:"ESP",opp:"POR",gf:1,ga:0},              // M93 — Spain 1-0 Portugal → ESP advances
+  {round:"R16",team:"BEL",opp:"USA",gf:4,ga:1},              // M94 — Belgium 4-1 USA → BEL advances
+  {round:"R16",team:"ARG",opp:"EGY",gf:3,ga:2},              // M95 — Argentina 3-2 Egypt → ARG advances
+  {round:"R16",team:"SUI",opp:"COL",gf:0,ga:0,pen:true,penTeam:4,penOpp:3},  // M96 — 0-0 AET, Switzerland 4-3 pens → SUI advances
+  {round:"QF",team:"FRA",opp:"MAR",gf:2,ga:0},               // M97 — France 2-0 Morocco → FRA advances
+  {round:"QF",team:"ESP",opp:"BEL",gf:2,ga:1},               // M98 — Spain 2-1 Belgium → ESP advances
+  {round:"QF",team:"ENG",opp:"NOR",gf:2,ga:1},               // M99 — Norway 1-2 England → ENG advances
+  {round:"QF",team:"ARG",opp:"SUI",gf:3,ga:1},               // M100 — Argentina 3-1 Switzerland → ARG advances
+  {round:"SF",team:"ESP",opp:"FRA",gf:2,ga:0},                // M101 — Spain 2-0 France → ESP advances to Final
+  {round:"SF",team:"ARG",opp:"ENG",gf:2,ga:1},                // M102 — Argentina 2-1 England → ARG advances to Final
 ];
 
 // ─── OFFICIAL MATCH SCHEDULE (FIFA, 22–27 Jun 2026) ─────────────────────────

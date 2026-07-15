@@ -117,8 +117,8 @@ const PARAM_MAP = {a:"teamA",b:"teamB",ko:"knockout",wf:"wForm",wm:"wMom",wd:"wD
 
 function parseUrlParams() {
   const p = new URLSearchParams(window.location.search);
-  const teamA = p.has("a") && NAMES[p.get("a")] ? p.get("a") : "ARG";
-  const teamB = p.has("b") && NAMES[p.get("b")] ? p.get("b") : "BRA";
+  const teamA = p.has("a") && NAMES[p.get("a")] ? p.get("a") : "ESP";
+  const teamB = p.has("b") && NAMES[p.get("b")] ? p.get("b") : "ARG";
   const cfg = {...CFG_DEFAULTS};
   if(p.has("ko"))  cfg.knockout = p.get("ko")==="1";
   if(p.has("wf"))  cfg.wForm    = Math.min(2.5,Math.max(0,parseFloat(p.get("wf"))||1));
@@ -138,6 +138,7 @@ Object.entries(GROUPS).forEach(([g,ts])=>ts.forEach(t=>{TEAM_GROUP[t]=g;}));
 
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const fmtDate=d=>{const[,m,day]=d.split("-");return `${MONTHS[+m-1]} ${+day}`;};
+const ROUND_LABELS_SHORT={R32:"Round of 32",R16:"Round of 16",QF:"QF",SF:"SF",Final:"Final"};
 function getSchedInfo(a,b,koMatches){
   const gs=MATCH_SCHEDULE.find(m=>(m.a===a&&m.b===b)||(m.a===b&&m.b===a));
   if(gs)return gs;
@@ -152,9 +153,6 @@ function getSchedInfo(a,b,koMatches){
   }
   return null;
 }
-function hasBaseResult(a,b){return (BASE_MATCH_LOG[a]||[]).some(m=>m.opp===b);}
-const SCHEDULED_UNPLAYED=MATCH_SCHEDULE.filter(m=>!hasBaseResult(m.a,m.b));
-
 // ─── CALCULABLE INDICES ─────────────────────────────────────────────────────
 function recencyWeights(n, halflife) {
   const w = [];
@@ -334,6 +332,13 @@ function computeTravelInfo(fromVenue,toVenue){
 
 const C={bg:"#faf7f5",panel:"#e8f4f1",panelAlt:"#F3FFF9",line:"rgba(161,228,219,0.5)",lineStrong:"#A1E4DB",text:"#0a3d3a",dim:"#506c67",green:"#25A497",blue:"#1C5753",coral:"#ff6b47",amber:"#b45309",purple:"#7c3aed",pink:"#be185d",red:"#b91c1c"};
 
+// Win/draw/loss color from one team's perspective; wonByPen covers shootout wins on a scoreline draw.
+const resultColor=(gf,ga,wonByPen=false)=>(gf>ga||wonByPen)?C.green:gf<ga?C.red:C.amber;
+
+function SectionLabel({color=C.blue,mb="14px",children}){
+  return <div style={{fontSize:"12px",color,fontWeight:700,letterSpacing:"2px",marginBottom:mb}}>{children}</div>;
+}
+
 function Slider({label,k,min,max,step,color,help,cfg,onSet}){
   return (
     <div style={{marginBottom:"14px"}}>
@@ -380,12 +385,7 @@ export default function ProgressivePredictor(){
       setTimeout(()=>setCopied(false),2000);
     });
   },[]);
-  const [injRound,setInjRound]=useState("group");
   const [injSub,setInjSub]=useState("group");
-  const [injTeam,setInjTeam]=useState("ARG");
-  const [injOpp,setInjOpp]=useState("AUT");
-  const [injGF,setInjGF]=useState(1);
-  const [injGA,setInjGA]=useState(0);
   const set=(k,v)=>setCfg(c=>({...c,[k]:v}));
 
   const travelInfo=useMemo(()=>{
@@ -399,17 +399,6 @@ export default function ProgressivePredictor(){
   },[teamA,teamB,cfg.travel,matchLog,koMatches]);
 
   const result=useMemo(()=> teamA===teamB?null:predict(teamA,teamB,cfg,matchLog,travelInfo.penA,travelInfo.penB),[teamA,teamB,cfg,matchLog,travelInfo]);
-
-  const injectResult=useCallback(()=>{
-    if(injTeam===injOpp)return;
-    setInjects(prev=>{
-      if(injRound!=="group"){
-        const dup=prev.some(d=>d.round===injRound&&((d.team===injTeam&&d.opp===injOpp)||(d.team===injOpp&&d.opp===injTeam)));
-        if(dup)return prev;
-      }
-      return [...prev,{round:injRound,team:injTeam,opp:injOpp,a:injTeam,b:injOpp,gf:Number(injGF),ga:Number(injGA)}];
-    });
-  },[injTeam,injOpp,injGF,injGA,injRound]);
 
   const resetMatchLog=useCallback(()=>{
     try{ localStorage.removeItem(STORAGE_KEY); }catch{}
@@ -542,7 +531,7 @@ export default function ProgressivePredictor(){
             )}
 
             <div style={{background:C.panel,borderRadius:"12px",padding:"16px",border:`1px solid ${C.line}`}}>
-              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"14px"}}>INDEX COMPARISON (recency-weighted)</div>
+              <SectionLabel>INDEX COMPARISON (recency-weighted)</SectionLabel>
               {[
                 ["Form Index",result.idxA.formIdx.toFixed(2),result.idxB.formIdx.toFixed(2),C.green],
                 ["Momentum",(result.idxA.momentum>0?"+":"")+result.idxA.momentum,(result.idxB.momentum>0?"+":"")+result.idxB.momentum,C.amber],
@@ -568,7 +557,7 @@ export default function ProgressivePredictor(){
 
         {tab==="indices"&&(
           <div>
-            <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>LIVE POWER RANKING · recomputes from injected results</div>
+            <SectionLabel mb="4px">LIVE POWER RANKING · recomputes from injected results</SectionLabel>
             <div style={{fontSize:"10px",color:C.dim,marginBottom:"12px"}}>Pre-tournament Elo: all 48 teams from eloratings.net (WC 2026 start). Fixtures &amp; results: FIFA (official) and CBS Sports.</div>
             {ranking.map((t,i)=>(
               <div key={t.abbr} style={{background:C.panel,borderRadius:"10px",padding:"11px 14px",marginBottom:"7px",border:`1px solid ${i===0?C.green+"60":C.line}`}}>
@@ -600,7 +589,7 @@ export default function ProgressivePredictor(){
 
         {tab==="tune"&&(
           <div>
-            <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"16px"}}>FEATURE WEIGHT INJECTION · live model tuning</div>
+            <SectionLabel mb="16px">FEATURE WEIGHT INJECTION · live model tuning</SectionLabel>
             <div style={{background:C.panel,borderRadius:"12px",padding:"18px",border:`1px solid ${C.line}`,marginBottom:"14px"}}>
               <Slider label="Form Index weight" k="wForm" min={0} max={2.5} step={0.1} color={C.green} help="How much a team's win/draw/loss record in this tournament shifts the prediction. Recent matches are weighted more than early ones. Slide right if you believe tournament form is the best signal; slide left to rely more on pre-tournament Elo." cfg={cfg} onSet={set}/>
               <Slider label="Momentum weight" k="wMom" min={0} max={2.5} step={0.1} color={C.amber} help="Captures whether a team is peaking or wobbling — measured as the goal-difference trend from their first match to their latest. A team winning by wider margins over time scores higher. Increase this if you think trajectory matters more than average form." cfg={cfg} onSet={set}/>
@@ -672,9 +661,16 @@ export default function ProgressivePredictor(){
                   </div>
                   <div style={{textAlign:"center",minWidth:"106px"}}>
                     <div style={{fontSize:"9px",color:C.dim,marginBottom:"2px"}}>{fmtDate(entry.date)} · M{entry.mn}</div>
-                    {res!=null?(
-                      <div style={{fontSize:"14px",fontWeight:800,color:(gf>ga||(res.pen&&res.team===tA))?C.green:(gf<ga||(res.pen&&res.opp===tA))?C.red:C.amber}}>{penA!=null?`${gf}(${penA})–${ga}(${penB})`:res.pen?`${gf}–${ga} (p)`:`${gf}–${ga}`}</div>
-                    ):(
+                    {res!=null?(()=>{
+                      const aWon=gf>ga||(res.pen&&res.team===tA), bWon=ga>gf||(res.pen&&res.team===tB);
+                      return (
+                      <div style={{fontSize:"14px",fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",gap:"1px"}}>
+                        <span style={{color:aWon?C.green:bWon?C.red:C.amber}}>{penA!=null?`${gf}(${penA})`:`${gf}`}</span>
+                        <span style={{color:C.dim,margin:"0 1px"}}>–</span>
+                        <span style={{color:bWon?C.green:aWon?C.red:C.amber}}>{penB!=null?`${ga}(${penB})`:`${ga}`}</span>
+                      </div>
+                      );
+                    })():(
                       <div>
                         <div style={{fontSize:"9px",color:C.dim,marginBottom:"3px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:"100px"}}>{entry.venue.split(",")[0]}</div>
                         {!bothKnown&&(
@@ -693,7 +689,7 @@ export default function ProgressivePredictor(){
 
             return (
               <div>
-                <div style={{fontSize:"12px",color:C.coral,fontWeight:700,letterSpacing:"2px",marginBottom:"14px"}}>MATCH SCHEDULE · KNOCKOUT STAGE</div>
+                <SectionLabel color={C.coral}>MATCH SCHEDULE · KNOCKOUT STAGE</SectionLabel>
                 <div style={{display:"flex",gap:"6px",marginBottom:"16px",flexWrap:"wrap"}}>
                   {KO_ROUNDS.map(({id,label})=>{
                     const active=koSchedRound===id;
@@ -715,7 +711,7 @@ export default function ProgressivePredictor(){
           const todayMatches=MATCH_SCHEDULE.filter(m=>m.date===today);
           return (
           <div>
-            <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"14px"}}>MATCH SCHEDULE · GROUP STAGE</div>
+            <SectionLabel>MATCH SCHEDULE · GROUP STAGE</SectionLabel>
             {todayMatches.length>0&&(
               <div style={{background:C.panelAlt,borderRadius:"10px",padding:"12px",marginBottom:"14px",border:`1px solid ${C.lineStrong}`}}>
                 <div style={{fontSize:"10px",fontWeight:800,color:C.green,letterSpacing:"1px",marginBottom:"8px"}}>TODAY — {fmtDate(today).toUpperCase()}</div>
@@ -727,7 +723,7 @@ export default function ProgressivePredictor(){
                       <div style={{textAlign:"center",minWidth:"110px"}}>
                         <div style={{fontSize:"9px",fontWeight:700,color:C.blue,letterSpacing:"0.5px",marginBottom:"2px"}}>GROUP {m.g}</div>
                         {res?(
-                          <span style={{fontSize:"13px",fontWeight:800,color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
+                          <span style={{fontSize:"13px",fontWeight:800,color:resultColor(res.gf,res.ga)}}>{res.gf}–{res.ga}</span>
                         ):(
                           <div style={{fontSize:"9px",color:C.dim}}>{m.venue.split(",")[0]}</div>
                         )}
@@ -760,7 +756,7 @@ export default function ProgressivePredictor(){
                       <div style={{textAlign:"center",minWidth:"110px"}}>
                         <div style={{fontSize:"9px",fontWeight:700,color:C.blue,letterSpacing:"0.5px",marginBottom:"2px"}}>{info?fmtDate(info.date):"matchday 1"}</div>
                         {res?(
-                          <span style={{fontSize:"13px",fontWeight:800,color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
+                          <span style={{fontSize:"13px",fontWeight:800,color:resultColor(res.gf,res.ga)}}>{res.gf}–{res.ga}</span>
                         ):(
                           <div style={{fontSize:"9px",color:C.dim}}>{info?info.venue.split(",")[0]:""}</div>
                         )}
@@ -795,7 +791,7 @@ export default function ProgressivePredictor(){
                         <div key={a+b} style={{display:"flex",alignItems:"center",gap:"4px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
                           <span style={{fontSize:"11px",flex:1,textAlign:"right",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{FLAGS[a]} {a}</span>
                           {res?(
-                            <span style={{fontSize:"12px",fontWeight:800,minWidth:"34px",textAlign:"center",color:res.gf>res.ga?C.green:res.gf<res.ga?C.red:C.amber}}>{res.gf}–{res.ga}</span>
+                            <span style={{fontSize:"12px",fontWeight:800,minWidth:"34px",textAlign:"center",color:resultColor(res.gf,res.ga)}}>{res.gf}–{res.ga}</span>
                           ):(
                             <span style={{fontSize:"9px",color:C.dim,whiteSpace:"nowrap",minWidth:"34px",textAlign:"center"}}>{info?fmtDate(info.date):""}</span>
                           )}
@@ -825,22 +821,18 @@ export default function ProgressivePredictor(){
         )}
 
         {tab==="inject"&&(()=>{
-          const isUserInjected=(a,b)=>injects.some(d=>d.round==="group"&&((d.team===a&&d.opp===b)||(d.team===b&&d.opp===a)));
-          const pending=SCHEDULED_UNPLAYED.filter(m=>!isUserInjected(m.a,m.b));
-          const userAdded=SCHEDULED_UNPLAYED.filter(m=>isUserInjected(m.a,m.b));
-          const isSel=(a,b)=>injRound==="group"&&injTeam===a&&injOpp===b;
           const koInjs=injects.filter(d=>d.round&&d.round!=="group"&&!BASE_KO_RESULTS.some(b=>b.round===d.round&&((b.team===d.team&&b.opp===d.opp)||(b.team===d.opp&&b.opp===d.team))));
           return (
             <div>
               <div style={{display:"flex",gap:"6px",marginBottom:"18px",borderBottom:`1px solid ${C.line}`,paddingBottom:"12px"}}>
                 {[["group","📊 Group Stage Standings"],["ko","🏆 Knockout Stage"]].map(([s,label])=>(
-                  <button key={s} onClick={()=>{setInjSub(s);setInjRound(s==="ko"?"R32":"group");}} style={{padding:"7px 14px",background:injSub===s?C.green:"transparent",color:injSub===s?"#0a3d3a":C.dim,border:`1px solid ${injSub===s?C.green:C.line}`,borderRadius:"9999px",fontSize:"12px",fontWeight:injSub===s?800:600,cursor:"pointer"}}>{label}</button>
+                  <button key={s} onClick={()=>setInjSub(s)} style={{padding:"7px 14px",background:injSub===s?C.green:"transparent",color:injSub===s?"#0a3d3a":C.dim,border:`1px solid ${injSub===s?C.green:C.line}`,borderRadius:"9999px",fontSize:"12px",fontWeight:injSub===s?800:600,cursor:"pointer"}}>{label}</button>
                 ))}
               </div>
 
               {injSub==="group"&&(<>
               {/* ── Group Standings ── */}
-              <div style={{fontSize:"12px",color:C.blue,fontWeight:700,letterSpacing:"2px",marginBottom:"4px"}}>GROUP STANDINGS · AS OF 2026-06-24</div>
+              <SectionLabel mb="4px">GROUP STANDINGS · AS OF 2026-06-24</SectionLabel>
               <div style={{fontSize:"10px",color:C.dim,marginBottom:"14px"}}>Source: FIFA (official) and CBS Sports. Top 2 from each group advance; 8 best 3rd-place teams also qualify.</div>
               <div className="wc-schedule-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"24px"}}>
                 {Object.entries(GROUP_STANDINGS).map(([g, teams])=>{
@@ -904,14 +896,18 @@ export default function ProgressivePredictor(){
                     {["R32","R16","QF","SF","Final"].map(r=>{
                       const rms=BASE_KO_RESULTS.filter(d=>d.round===r);
                       if(!rms.length)return null;
-                      const rl=r==="R32"?"Round of 32":r==="R16"?"Round of 16":r==="QF"?"QF":r==="SF"?"SF":"Final";
+                      const rl=ROUND_LABELS_SHORT[r];
                       return (
                         <div key={r} style={{marginBottom:"6px"}}>
                           <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"3px"}}>{rl}</div>
                           {rms.map((d,i)=>(
                             <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
                               <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.team]} {NAMES[d.team]}</span>
-                              <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga||d.pen?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"60px",textAlign:"center"}}>{d.penTeam!=null?`${d.gf}(${d.penTeam})–${d.ga}(${d.penOpp})`:d.pen?`${d.gf}–${d.ga} (p)`:`${d.gf}–${d.ga}`}</span>
+                              <span style={{fontSize:"12px",fontWeight:800,minWidth:"70px",textAlign:"center",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:"1px"}}>
+                                <span style={{color:C.green}}>{d.penTeam!=null?`${d.gf}(${d.penTeam})`:`${d.gf}`}</span>
+                                <span style={{color:C.dim,margin:"0 1px"}}>–</span>
+                                <span style={{color:C.red}}>{d.penTeam!=null?`${d.ga}(${d.penOpp})`:`${d.ga}`}</span>
+                              </span>
                               <span style={{fontSize:"11px",flex:1}}>{NAMES[d.opp]} {FLAGS[d.opp]}</span>
                               <span style={{fontSize:"8px",fontWeight:800,color:C.green,border:`1px solid ${C.green}`,borderRadius:"4px",padding:"1px 4px",letterSpacing:"0.5px"}}>OFFICIAL</span>
                             </div>
@@ -927,7 +923,7 @@ export default function ProgressivePredictor(){
                     {["R32","R16","QF","SF","Final"].map(r=>{
                       const rms=koInjs.filter(d=>d.round===r);
                       if(!rms.length)return null;
-                      const rl=r==="R32"?"Round of 32":r==="R16"?"Round of 16":r==="QF"?"QF":r==="SF"?"SF":"Final";
+                      const rl=ROUND_LABELS_SHORT[r];
                       return (
                         <div key={r} style={{marginBottom:"6px"}}>
                           <div style={{fontSize:"9px",color:C.dim,fontWeight:700,letterSpacing:"1px",marginBottom:"3px"}}>{rl}</div>
@@ -936,7 +932,7 @@ export default function ProgressivePredictor(){
                             return (
                               <div key={i} style={{display:"flex",alignItems:"center",gap:"6px",padding:"4px 0",borderBottom:`1px solid ${C.line}`}}>
                                 <span style={{fontSize:"11px",flex:1,textAlign:"right"}}>{FLAGS[d.a]} {NAMES[d.a]}</span>
-                                <span style={{fontSize:"12px",fontWeight:800,color:d.gf>d.ga||d.pen?C.green:d.gf<d.ga?C.red:C.amber,minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}{d.pen?" (p)":""}</span>
+                                <span style={{fontSize:"12px",fontWeight:800,color:resultColor(d.gf,d.ga,d.pen),minWidth:"30px",textAlign:"center"}}>{d.gf}–{d.ga}{d.pen?" (p)":""}</span>
                                 <span style={{fontSize:"11px",flex:1}}>{NAMES[d.b]} {FLAGS[d.b]}</span>
                                 <button onClick={()=>removeInject(gi)} aria-label="Remove" style={{background:"transparent",border:"none",color:C.dim,fontSize:"16px",lineHeight:1,cursor:"pointer",padding:"0 2px"}}>×</button>
                               </div>

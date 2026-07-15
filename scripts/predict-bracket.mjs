@@ -187,10 +187,11 @@ for(const mn of order){
   const actual=actualFor(a,b);
   if(actual){
     const ga=actual.team===a?actual.gf:actual.ga, gb=actual.team===a?actual.ga:actual.gf;
-    const w=ga>gb?a:b, l=ga>gb?b:a;
+    const w=actual.team, l=actual.opp;
     winnerOf[mn]=w; loserOf[mn]=l;
     results[mn]={mn,round:ROUND_FOR_MN(mn),date:e.date,venue:e.venue,a,b,
       koA:w===a?1:0,koB:w===b?1:0,winner:w,loser:l,score:[ga,gb],actual:true,
+      pen:actual.pen?{team:actual.team,penTeam:actual.penTeam,penOpp:actual.penOpp}:null,
       eloA:null,eloB:null,penA:0,penB:0,tA:null,tB:null,p:null};
     prevVenue[w]=e.venue;
     continue;

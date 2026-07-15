@@ -128,7 +128,7 @@ const thirdNode = { mn:103, x:finalX, cy:thirdCy };
 
 // labels
 svg += `<text x="${W/2}" y="50" text-anchor="middle" font-size="34" font-weight="700" fill="${C.text}" font-family="'DM Serif Display',Georgia,serif">FIFA World Cup 2026 — Predicted Knockout Bracket</text>`;
-svg += `<text x="${W/2}" y="78" text-anchor="middle" font-size="14" fill="${C.head}" font-family="'Plus Jakarta Sans',sans-serif">Hayah-AI adaptive model · power ranking + travel fatigue · generated 2026-06-28 (group stage complete)</text>`;
+svg += `<text x="${W/2}" y="78" text-anchor="middle" font-size="14" fill="${C.head}" font-family="'Plus Jakarta Sans',sans-serif">Hayah-AI adaptive model · power ranking + travel fatigue · generated 2026-07-16 (Final set: Spain vs Argentina)</text>`;
 svg += `<text x="${finalX+BW/2}" y="${finalCy-BH/2-30}" text-anchor="middle" font-size="20" font-weight="700" fill="${C.text}" font-family="'DM Serif Display',Georgia,serif">Final</text>`;
 svg += `<text x="${finalX+BW/2}" y="${thirdCy-BH/2-26}" text-anchor="middle" font-size="14" font-weight="600" fill="${C.head}" font-family="'Plus Jakarta Sans',sans-serif">Play-off for third place</text>`;
 

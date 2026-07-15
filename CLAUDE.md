@@ -8,6 +8,12 @@ Live URL: https://hayahai-wc2026.netlify.app
 
 ---
 
+## Knowledge Base
+
+This project has an OKF knowledge bundle at `okf/`. Read `okf/index.md` before starting any code task — it documents the prediction model, the bracket-cascade scripts, and the results-data schema. Keep it in sync when those change (see `/okf-knowledge`).
+
+---
+
 ## Stack
 
 - **Bundler:** Vite 5 + React 18 (JSX, not TypeScript)
